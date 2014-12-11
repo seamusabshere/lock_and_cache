@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency 'active_record'
+  spec.add_runtime_dependency 'activerecord'
   spec.add_runtime_dependency 'cache_method'
   spec.add_runtime_dependency 'hash_digest'
   spec.add_runtime_dependency 'with_advisory_lock'
