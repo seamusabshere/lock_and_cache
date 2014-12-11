@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["seamus@abshere.net"]
   spec.summary       = %q{Lock and cache methods.}
   spec.description   = %q{Lock and cache methods, in case things should only be calculated once across processes.}
-  spec.homepage      = ""
+  spec.homepage      = "https://github.com/seamusabshere/lock_and_cache"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0")
