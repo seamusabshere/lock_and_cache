@@ -1,3 +1,9 @@
+0.0.5 / 2014-12-12
+
+* Enhancements
+
+  * ENV['LOCK_AND_CACHE_DEBUG'] == 'true' debug output to $stderr
+
 0.0.4 / 2014-12-12
 
 * Bug fixes
