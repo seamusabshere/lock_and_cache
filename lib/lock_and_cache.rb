@@ -20,7 +20,7 @@ module LockAndCache
         if cache_method_cached?(method_id, args)
           send method_id, *args # which will be the cached version
         else
-          send unlocked_method_id
+          send unlocked_method_id, *args
         end
       end
     end

@@ -1,3 +1,9 @@
+0.0.4 / 2014-12-12
+
+* Bug fixes
+
+  * Pass arguments while caching method results
+
 0.0.3 / 2014-12-12
 
 * Enhancements
