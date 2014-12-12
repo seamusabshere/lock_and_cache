@@ -1,3 +1,9 @@
+0.0.3 / 2014-12-12
+
+* Enhancements
+
+  * Save a trip to the database if something is already cached
+
 0.0.2 / 2014-12-11
 
 * Bug fixes
