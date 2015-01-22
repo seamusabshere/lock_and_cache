@@ -1,3 +1,14 @@
+0.1.0 / 2015-01-22
+
+* Breaking changes
+
+  * Redis only
+  * Now you use it inside methods (like Rails.cache.fetch) instead of outside (like cache_method)
+
+* Enhancements
+
+  * Way simpler, no dependency on CacheMethod
+
 0.0.5 / 2014-12-12
 
 * Enhancements

@@ -1,17 +1,20 @@
 require 'spec_helper'
 
 class Foo
+  include LockAndCache
+
   def initialize(id)
     @id = id
     @count = 0
   end
+
   def click
-    @count += 1
+    lock_and_cache(self) do
+      @count += 1
+    end
   end
 
-  extend LockAndCache
-  lock_and_cache :click
-  def as_cache_key
+  def lock_and_cache_key
     @id
   end
 end
@@ -19,10 +22,13 @@ end
 require 'set'
 $clicking = Set.new
 class Bar
+  include LockAndCache
+
   def initialize(id)
     @id = id
     @count = 0
   end
+
   def unsafe_click
     Thread.exclusive do
       # puts "clicking bar #{@id} - #{$clicking.to_a} - #{$clicking.include?(@id)} - #{@id == $clicking.to_a[0]}"
@@ -36,18 +42,23 @@ class Bar
     end
     @count
   end
+
   def click
-    unsafe_click
+    lock_and_cache(self) do
+      unsafe_click
+    end
   end
 
-  extend LockAndCache
-  lock_and_cache :click
-  def as_cache_key
+  def lock_and_cache_key
     @id
   end
 end
 
 describe LockAndCache do
+  before do
+    LockAndCache.flush
+  end
+
   it 'has a version number' do
     expect(LockAndCache::VERSION).not_to be nil
   end

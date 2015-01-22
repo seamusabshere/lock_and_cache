@@ -5,7 +5,7 @@ TODO: Write a gem description
 ## Wishlist
 
 * no dep on activerecord
-* no dep on cache_method
+* no dep on redis
 
 ## Installation
 

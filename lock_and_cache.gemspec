@@ -19,7 +19,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_runtime_dependency 'activerecord'
-  spec.add_runtime_dependency 'cache_method'
   spec.add_runtime_dependency 'hash_digest'
   spec.add_runtime_dependency 'with_advisory_lock'
 
@@ -29,4 +28,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'pg'
   spec.add_development_dependency 'rake', '~> 10.0'
   spec.add_development_dependency 'rspec'
+  spec.add_development_dependency 'redis'
 end
