@@ -69,6 +69,12 @@ describe LockAndCache do
       expect(foo.click).to eq(1)
       expect(foo.click).to eq(1)
     end
+
+    it "can be cleared" do
+      expect(foo.click).to eq(1)
+      foo.lock_and_cache_clear :click, foo
+      expect(foo.click).to eq(2)
+    end
   end
 
   describe "locking" do

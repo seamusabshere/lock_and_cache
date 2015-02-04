@@ -1,3 +1,9 @@
+0.1.1 / 2015-02-04
+
+* Enhancements
+
+  * Clear individual cached things with #lock_and_cache_clear
+
 0.1.0 / 2015-01-22
 
 * Breaking changes

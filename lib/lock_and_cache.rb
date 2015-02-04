@@ -20,11 +20,11 @@ module LockAndCache
 
   class Key
     attr_reader :obj
-    attr_reader :kaller
+    attr_reader :method_id
 
-    def initialize(obj, kaller, parts)
+    def initialize(obj, method_id, parts)
       @obj = obj
-      @kaller = kaller
+      @method_id = method_id
       @_parts = parts
     end
 
@@ -47,23 +47,26 @@ module LockAndCache
       end
     end
 
-    def method_id
-      @method_id ||= begin
-        kaller[0] =~ /in `(\w+)'/
-        $1 or raise "couldn't get method_id from #{kaller[0]}"
-      end
-    end
-
     def obj_class_name
       @obj_class_name ||= (obj.class == ::Class) ? obj.name : obj.class.name
     end
 
   end
 
+  def lock_and_cache_clear(method_id, *key_parts)
+    debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
+    key = LockAndCache::Key.new self, method_id, key_parts
+    Thread.exclusive { $stderr.puts "[lock_and_cache] clear #{key.debug}" } if debug
+    digest = key.digest
+    LockAndCache.storage.del digest
+  end
+
   def lock_and_cache(*key_parts)
     raise "need a block" unless block_given?
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
-    key = LockAndCache::Key.new self, caller, key_parts
+    caller[0] =~ /in `(\w+)'/
+    method_id = $1 or raise "couldn't get method_id from #{kaller[0]}"
+    key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
     storage = LockAndCache.storage
     Thread.exclusive { $stderr.puts "[lock_and_cache] A #{key.debug}" } if debug
