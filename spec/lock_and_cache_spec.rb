@@ -6,11 +6,18 @@ class Foo
   def initialize(id)
     @id = id
     @count = 0
+    @count_exp = 0
   end
 
   def click
     lock_and_cache(self) do
       @count += 1
+    end
+  end
+
+  def click_exp
+    lock_and_cache(self, expires: 1, foo: :bar) do
+      @count_exp += 1
     end
   end
 
@@ -74,6 +81,13 @@ describe LockAndCache do
       expect(foo.click).to eq(1)
       foo.lock_and_cache_clear :click, foo
       expect(foo.click).to eq(2)
+    end
+
+    it "can be expired" do
+      expect(foo.click_exp).to eq(1)
+      expect(foo.click_exp).to eq(1)
+      sleep 2
+      expect(foo.click_exp).to eq(2)
     end
   end
 

@@ -66,6 +66,8 @@ module LockAndCache
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
     caller[0] =~ /in `(\w+)'/
     method_id = $1 or raise "couldn't get method_id from #{kaller[0]}"
+    options = key_parts.pop.stringify_keys if key_parts.last.is_a?(Hash)
+    expires = options['expires'] if options
     key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
     storage = LockAndCache.storage
@@ -81,7 +83,11 @@ module LockAndCache
       else
         Thread.exclusive { $stderr.puts "[lock_and_cache] D #{key.debug}" } if debug
         memo = yield
-        storage.set digest, ::Marshal.dump(memo)
+        if expires
+          storage.setex digest, expires, ::Marshal.dump(memo)
+        else
+          storage.set digest, ::Marshal.dump(memo)
+        end
         memo
       end
     end
