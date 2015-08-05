@@ -1,13 +1,18 @@
 require 'lock_and_cache/version'
-
+require 'redis'
+require 'redlock'
 require 'hash_digest'
-require 'active_record'
-require 'with_advisory_lock'
+require 'active_support'
+require 'active_support/core_ext'
 
 module LockAndCache
+  DEFAULT_LOCK_EXPIRES = 60 * 60 * 24 * 3 * 1000 # 3 days in milliseconds
+  DEFAULT_LOCK_SPIN = 0.1
+
   def LockAndCache.storage=(v)
     raise "only redis for now" unless v.class.to_s == 'Redis'
     @storage = v
+    @lock_manager = Redlock::Client.new [v]
   end
 
   def LockAndCache.storage
@@ -16,6 +21,28 @@ module LockAndCache
 
   def LockAndCache.flush
     storage.flushdb
+  end
+
+  def LockAndCache.lock_manager
+    @lock_manager
+  end
+
+  # in seconds
+  def LockAndCache.lock_expires=(v)
+    @lock_expires = v.to_f * 1000
+  end
+
+  def LockAndCache.lock_expires
+    @lock_expires || DEFAULT_LOCK_EXPIRES
+  end
+
+  # in seconds, how long to wait before trying the lock again
+  def LockAndCache.lock_spin=(v)
+    @lock_spin = v.to_f
+  end
+
+  def LockAndCache.lock_spin
+    @lock_spin || DEFAULT_LOCK_SPIN
   end
 
   class Key
@@ -66,8 +93,10 @@ module LockAndCache
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
     caller[0] =~ /in `(\w+)'/
     method_id = $1 or raise "couldn't get method_id from #{kaller[0]}"
-    options = key_parts.pop.stringify_keys if key_parts.last.is_a?(Hash)
-    expires = options['expires'] if options
+    options = key_parts.last.is_a?(Hash) ? key_parts.pop.stringify_keys : {}
+    expires = options['expires']
+    lock_expires = options.fetch 'lock_expires', LockAndCache.lock_expires
+    lock_spin = options.fetch 'lock_spin', LockAndCache.lock_spin
     key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
     storage = LockAndCache.storage
@@ -76,20 +105,29 @@ module LockAndCache
       return ::Marshal.load(storage.get(digest))
     end
     Thread.exclusive { $stderr.puts "[lock_and_cache] B #{key.debug}" } if debug
-    ActiveRecord::Base.with_advisory_lock(digest) do
+    retval = nil
+    lock_manager = LockAndCache.lock_manager
+    lock_digest = 'lock/' + digest
+    lock_info = nil
+    begin
+      until lock_info = lock_manager.lock(lock_digest, lock_expires)
+        sleep lock_spin
+      end
       Thread.exclusive { $stderr.puts "[lock_and_cache] C #{key.debug}" } if debug
       if storage.exists digest
         ::Marshal.load storage.get(digest)
       else
         Thread.exclusive { $stderr.puts "[lock_and_cache] D #{key.debug}" } if debug
-        memo = yield
+        retval = yield
         if expires
-          storage.setex digest, expires, ::Marshal.dump(memo)
+          storage.setex digest, expires, ::Marshal.dump(retval)
         else
-          storage.set digest, ::Marshal.dump(memo)
+          storage.set digest, ::Marshal.dump(retval)
         end
-        memo
       end
+    ensure
+      lock_manager.unlock lock_info
     end
+    retval
   end
 end

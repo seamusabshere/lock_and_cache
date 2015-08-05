@@ -44,9 +44,7 @@ class Bar
     end
     sleep 1
     @count += 1
-    Thread.exclusive do
-      $clicking.delete @id
-    end
+    $clicking.delete @id
     @count
   end
 
@@ -93,7 +91,8 @@ describe LockAndCache do
 
   describe "locking" do
     let(:bar) { Bar.new(rand.to_s) }
-    it "it blows up normally" do
+
+    it "it blows up normally (simple thread)" do
       a = Thread.new do
         bar.unsafe_click
       end
@@ -106,7 +105,21 @@ describe LockAndCache do
       end.to raise_error(/somebody/)
     end
 
-    it "doesn't blow up if you lock it" do
+    it "it blows up (pre-existing thread pool, more reliable)" do
+      pool = Thread.pool 2
+      Thread::Pool.abort_on_exception = true
+      expect do
+        pool.process do
+          bar.unsafe_click
+        end
+        pool.process do
+          bar.unsafe_click
+        end
+        pool.shutdown
+      end.to raise_error(/somebody/)
+    end
+
+    it "doesn't blow up if you lock it (simple thread)" do
       a = Thread.new do
         bar.click
       end
@@ -115,6 +128,18 @@ describe LockAndCache do
       end
       a.join
       b.join
+    end
+
+    it "doesn't blow up if you lock it (pre-existing thread pool, more reliable)" do
+      pool = Thread.pool 2
+      Thread::Pool.abort_on_exception = true
+      pool.process do
+        bar.click
+      end
+      pool.process do
+        bar.click
+      end
+      pool.shutdown
     end
 
   end

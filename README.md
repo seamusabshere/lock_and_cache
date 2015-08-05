@@ -1,11 +1,11 @@
 # LockAndCache
 
-TODO: Write a gem description
+Lock and cache using redis!
 
 ## Wishlist
 
-* no dep on activerecord
-* no dep on redis
+* documentation
+* determine if it's sane to require redis
 
 ## Installation
 

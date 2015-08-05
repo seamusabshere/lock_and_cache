@@ -1,3 +1,10 @@
+1.0.0 / 2015-08-05
+
+* Enhancements
+
+  * Use Redis redlock http://redis.io/topics/distlock instead of Postgres advisory locks
+  * No more dependency on ActiveRecord or Postgres!
+
 0.1.2 / 2015-06-24
 
 * Enhancements
