@@ -9,42 +9,49 @@ module LockAndCache
   DEFAULT_LOCK_EXPIRES = 60 * 60 * 24 * 3 * 1000 # 3 days in milliseconds
   DEFAULT_LOCK_SPIN = 0.1
 
-  def LockAndCache.storage=(v)
-    raise "only redis for now" unless v.class.to_s == 'Redis'
-    @storage = v
-    @lock_manager = Redlock::Client.new [v]
+  # @param redis_connection [Redis] A redis connection to be used for lock and cached value storage
+  def LockAndCache.storage=(redis_connection)
+    raise "only redis for now" unless redis_connection.class.to_s == 'Redis'
+    @storage = redis_connection
+    @lock_manager = Redlock::Client.new [redis_connection]
   end
 
+  # @return [Redis] The redis connection used for lock and cached value storage
   def LockAndCache.storage
     @storage
   end
 
-  def LockAndCache.flush
-    storage.flushdb
+  # @param seconds [Numeric] Lock expiry in seconds.
+  #
+  # @note Can be overridden by putting `expires:` in your call to `#lock_and_cache`
+  def LockAndCache.lock_expires=(seconds)
+    @lock_expires = seconds.to_f * 1000
   end
 
-  def LockAndCache.lock_manager
-    @lock_manager
-  end
-
-  # in seconds
-  def LockAndCache.lock_expires=(v)
-    @lock_expires = v.to_f * 1000
-  end
-
+  # @return [Numeric] Lock expiry in milliseconds.
+  # @private
   def LockAndCache.lock_expires
     @lock_expires || DEFAULT_LOCK_EXPIRES
   end
 
-  # in seconds, how long to wait before trying the lock again
-  def LockAndCache.lock_spin=(v)
-    @lock_spin = v.to_f
+  # @param seconds [Numeric] How long to wait before trying a lock again, in seconds
+  #
+  # @note Can be overridden by putting `lock_spin:` in your call to `#lock_and_cache`
+  def LockAndCache.lock_spin=(seconds)
+    @lock_spin = seconds.to_f
   end
 
+  # @private
   def LockAndCache.lock_spin
     @lock_spin || DEFAULT_LOCK_SPIN
   end
 
+  # @private
+  def LockAndCache.lock_manager
+    @lock_manager
+  end
+
+  # @private
   class Key
     attr_reader :obj
     attr_reader :method_id
@@ -80,6 +87,9 @@ module LockAndCache
 
   end
 
+  # Clear a cache given exactly the method and exactly the same arguments
+  #
+  # @note Does not unlock.
   def lock_and_cache_clear(method_id, *key_parts)
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
     key = LockAndCache::Key.new self, method_id, key_parts
@@ -88,6 +98,11 @@ module LockAndCache
     LockAndCache.storage.del digest
   end
 
+  # Lock and cache a method given key parts.
+  #
+  # @param key_parts [*] Parts that you want to include in the lock and cache key
+  #
+  # @return The cached value (possibly newly calculated).
   def lock_and_cache(*key_parts)
     raise "need a block" unless block_given?
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')

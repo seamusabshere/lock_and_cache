@@ -10,13 +10,13 @@ class Foo
   end
 
   def click
-    lock_and_cache(self) do
+    lock_and_cache do
       @count += 1
     end
   end
 
   def click_exp
-    lock_and_cache(self, expires: 1, foo: :bar) do
+    lock_and_cache(expires: 1, foo: :bar) do
       @count_exp += 1
     end
   end
@@ -49,7 +49,7 @@ class Bar
   end
 
   def click
-    lock_and_cache(self) do
+    lock_and_cache do
       unsafe_click
     end
   end
@@ -61,7 +61,7 @@ end
 
 describe LockAndCache do
   before do
-    LockAndCache.flush
+    LockAndCache.storage.flushdb
   end
 
   it 'has a version number' do
@@ -77,7 +77,7 @@ describe LockAndCache do
 
     it "can be cleared" do
       expect(foo.click).to eq(1)
-      foo.lock_and_cache_clear :click, foo
+      foo.lock_and_cache_clear :click
       expect(foo.click).to eq(2)
     end
 
