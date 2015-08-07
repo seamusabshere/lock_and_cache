@@ -130,7 +130,7 @@ module LockAndCache
       end
       Thread.exclusive { $stderr.puts "[lock_and_cache] C #{key.debug}" } if debug
       if storage.exists digest
-        ::Marshal.load storage.get(digest)
+        retval = ::Marshal.load storage.get(digest)
       else
         Thread.exclusive { $stderr.puts "[lock_and_cache] D #{key.debug}" } if debug
         retval = yield

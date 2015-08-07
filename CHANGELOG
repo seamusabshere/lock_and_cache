@@ -1,4 +1,8 @@
-unreleased
+1.0.1 / 2015-08-06
+
+* Bug fixes
+
+  * Return value properly if lock was acquired but cached value immediately found
 
 * Enhancements
 
