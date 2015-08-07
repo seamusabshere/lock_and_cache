@@ -122,24 +122,26 @@ module LockAndCache
     key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
     storage = LockAndCache.storage
-    Thread.exclusive { $stderr.puts "[lock_and_cache] A #{key.debug}" } if debug
+    Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug}" } if debug
     if storage.exists digest
       return ::Marshal.load(storage.get(digest))
     end
-    Thread.exclusive { $stderr.puts "[lock_and_cache] B #{key.debug}" } if debug
+    Thread.exclusive { $stderr.puts "[lock_and_cache] B1 #{key.debug}" } if debug
     retval = nil
     lock_manager = LockAndCache.lock_manager
     lock_digest = 'lock/' + digest
     lock_info = nil
     begin
       until lock_info = lock_manager.lock(lock_digest, lock_expires)
+        Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug}" } if debug
         sleep lock_spin
       end
-      Thread.exclusive { $stderr.puts "[lock_and_cache] C #{key.debug}" } if debug
+      Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug}" } if debug
       if storage.exists digest
+        Thread.exclusive { $stderr.puts "[lock_and_cache] E1 #{key.debug}" } if debug
         retval = ::Marshal.load storage.get(digest)
       else
-        Thread.exclusive { $stderr.puts "[lock_and_cache] D #{key.debug}" } if debug
+        Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug}" } if debug
         retval = yield
         if expires
           storage.setex digest, expires, ::Marshal.dump(retval)
