@@ -61,7 +61,7 @@ end
 
 describe LockAndCache do
   before do
-    LockAndCache.storage.flushdb
+    LockAndCache.flush
   end
 
   it 'has a version number' do

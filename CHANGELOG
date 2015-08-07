@@ -1,3 +1,9 @@
+1.0.2 / 2015-08-06
+
+* Bug fixes
+
+  * Put LockAndCache.flush back
+
 1.0.1 / 2015-08-06
 
 * Bug fixes

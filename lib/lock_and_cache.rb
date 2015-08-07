@@ -21,6 +21,13 @@ module LockAndCache
     @storage
   end
 
+  # Flush LockAndCache's storage
+  #
+  # @note If you are sharing a redis database, it will clear it...
+  def LockAndCache.flush
+    storage.flushdb
+  end
+
   # @param seconds [Numeric] Lock expiry in seconds.
   #
   # @note Can be overridden by putting `expires:` in your call to `#lock_and_cache`
