@@ -88,14 +88,17 @@ module LockAndCache
       @_parts = parts
     end
 
+    # A (non-cryptographic) digest of the key parts for use as the redis cache key
     def digest
       @digest ||= ::HashDigest.digest3([obj_class_name, method_id] + parts)
     end
 
+    # A human-readable representation of the key parts
     def debug
       @debug ||= [obj_class_name, method_id] + parts
     end
 
+    # An array of the parts we use for the key
     def parts
       @parts ||= @_parts.map do |v|
         case v
@@ -107,6 +110,7 @@ module LockAndCache
       end
     end
 
+    # An object (or its class's) name
     def obj_class_name
       @obj_class_name ||= (obj.class == ::Class) ? obj.name : obj.class.name
     end
