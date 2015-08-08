@@ -6,7 +6,7 @@ require 'active_support'
 require 'active_support/core_ext'
 
 module LockAndCache
-  DEFAULT_LOCK_EXPIRES = 60 * 60 * 24 * 3 * 1000 # 3 days in milliseconds
+  DEFAULT_LOCK_EXPIRES = 60 * 60 * 24 * 1 * 1000 # 1 day in milliseconds
   DEFAULT_LOCK_SPIN = 0.1
 
   # @param redis_connection [Redis] A redis connection to be used for lock and cached value storage
