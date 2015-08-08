@@ -54,6 +54,12 @@ class Bar
     end
   end
 
+  def slow_click
+    lock_and_cache do
+      sleep 1
+    end
+  end
+
   def lock_and_cache_key
     @id
   end
@@ -140,6 +146,26 @@ describe LockAndCache do
         bar.click
       end
       pool.shutdown
+    end
+
+    it "can set a wait time" do
+      pool = Thread.pool 2
+      Thread::Pool.abort_on_exception = true
+      begin
+        old_max = LockAndCache.max_lock_wait
+        LockAndCache.max_lock_wait = 0.5
+        expect do
+          pool.process do
+            bar.slow_click
+          end
+          pool.process do
+            bar.slow_click
+          end
+          pool.shutdown
+        end.to raise_error(LockAndCache::TimeoutWaitingForLock)
+      ensure
+        LockAndCache.max_lock_wait = old_max
+      end
     end
 
   end

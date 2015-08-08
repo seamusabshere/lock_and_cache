@@ -1,4 +1,5 @@
 require 'lock_and_cache/version'
+require 'timeout'
 require 'redis'
 require 'redlock'
 require 'hash_digest'
@@ -8,6 +9,9 @@ require 'active_support/core_ext'
 module LockAndCache
   DEFAULT_LOCK_EXPIRES = 60 * 60 * 24 * 1 * 1000 # 1 day in milliseconds
   DEFAULT_LOCK_SPIN = 0.1
+  DEFAULT_MAX_LOCK_WAIT = 60 * 60 * 24 # 1 day in seconds
+
+  class TimeoutWaitingForLock < StandardError; end
 
   # @param redis_connection [Redis] A redis connection to be used for lock and cached value storage
   def LockAndCache.storage=(redis_connection)
@@ -51,6 +55,18 @@ module LockAndCache
   # @private
   def LockAndCache.lock_spin
     @lock_spin || DEFAULT_LOCK_SPIN
+  end
+
+  # @param seconds [Numeric] Maximum wait time to get a lock
+  #
+  # @note Can be overridden by putting `max_lock_wait:` in your call to `#lock_and_cache`
+  def LockAndCache.max_lock_wait=(seconds)
+    @max_lock_wait = seconds.to_f
+  end
+
+  # @private
+  def LockAndCache.max_lock_wait
+    @max_lock_wait || DEFAULT_MAX_LOCK_WAIT
   end
 
   # @private
@@ -119,6 +135,7 @@ module LockAndCache
     expires = options['expires']
     lock_expires = options.fetch 'lock_expires', LockAndCache.lock_expires
     lock_spin = options.fetch 'lock_spin', LockAndCache.lock_spin
+    max_lock_wait = options.fetch 'max_lock_wait', LockAndCache.max_lock_wait
     key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
     storage = LockAndCache.storage
@@ -132,9 +149,11 @@ module LockAndCache
     lock_digest = 'lock/' + digest
     lock_info = nil
     begin
-      until lock_info = lock_manager.lock(lock_digest, lock_expires)
-        Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug}" } if debug
-        sleep lock_spin
+      Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
+        until lock_info = lock_manager.lock(lock_digest, lock_expires)
+          Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug}" } if debug
+          sleep lock_spin
+        end
       end
       Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug}" } if debug
       if storage.exists digest
@@ -150,7 +169,7 @@ module LockAndCache
         end
       end
     ensure
-      lock_manager.unlock lock_info
+      lock_manager.unlock lock_info if lock_info
     end
     retval
   end
