@@ -9,6 +9,8 @@
 
 Lock and cache using redis!
 
+<a href="http://colinlanham.com/" title="Colin Lanham's Burden of Dreams (2000)"><img src="http://colinlanham.com/static/media/mangrove-swamp.jpg" /></a>
+
 ## Redlock locking
 
 Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).

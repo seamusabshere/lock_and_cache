@@ -6,6 +6,9 @@ require 'hash_digest'
 require 'active_support'
 require 'active_support/core_ext'
 
+# Lock and cache methods using redis!
+#
+# I bet you're caching, but are you locking?
 module LockAndCache
   DEFAULT_LOCK_EXPIRES = 60 * 60 * 24 * 1 * 1000 # 1 day in milliseconds
   DEFAULT_LOCK_SPIN = 0.1
