@@ -1,3 +1,13 @@
+unreleased
+
+* Breaking changes
+
+  * Reduce default lock expiry to 1 day instead of weird 3 days
+
+* Enhancements
+
+  * Added :max_lock_wait option inspired by @leandromoreira
+
 1.0.3 / 2015-08-06
 
 * Enhancements
