@@ -9,9 +9,28 @@
 
 Lock and cache using redis!
 
-<a href="http://colinlanham.com/" title="Colin Lanham's Burden of Dreams (2000)"><img src="http://colinlanham.com/static/media/mangrove-swamp.jpg" /></a>
+## Sponsor
 
-## Redlock locking
+<p><a href="http://faraday.io"><img src="https://s3.amazonaws.com/photos.angel.co/startups/i/175701-a63ebd1b56a401e905963c64958204d4-medium_jpg.jpg" alt="Faraday logo"/></a></p>
+
+We use [`lock_and_cache`](https://rubygems.org/gems/lock_and_cache) for [big data-driven marketing at Faraday](http://faraday.io).
+
+## Theory
+
+`lock_and_cache`...
+
+1. returns cached value if found
+2. acquires a lock
+3. returns cached value if found (just in case it was calculated while we were waiting for a lock)
+4. calculates and caches the value
+5. releases the lock
+6. returns the value
+
+As you can see, most caching libraries only take care of (1) and (4).
+
+## Practice
+
+### Locking (antirez's Redlock)
 
 Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).
 
@@ -21,7 +40,7 @@ LockAndCache.storage = Redis.new
 
 It will use this redis for both locking and storing cached values.
 
-## Convenient caching
+### Caching (block inside of a method)
 
 (be sure to set up storage as above)
 
@@ -64,12 +83,6 @@ end
 * [redis](https://github.com/redis/redis-rb)
 * [redlock](https://github.com/leandromoreira/redlock-rb)
 * [hash_digest](https://github.com/seamusabshere/hash_digest) (which requires [murmurhash3](https://github.com/funny-falcon/murmurhash3-ruby))
-
-## Real-world usage
-
-<p><a href="http://faraday.io"><img src="https://s3.amazonaws.com/photos.angel.co/startups/i/175701-a63ebd1b56a401e905963c64958204d4-medium_jpg.jpg" alt="Faraday logo"/></a></p>
-
-We use [`lock_and_cache`](https://rubygems.org/gems/lock_and_cache) for [big data-driven marketing at Faraday](http://angel.co/faraday).
 
 ## Contributing
 
