@@ -19,7 +19,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_runtime_dependency 'activesupport'
-  spec.add_runtime_dependency 'hash_digest'
   spec.add_runtime_dependency 'redis'
   spec.add_runtime_dependency 'redlock'
 

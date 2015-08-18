@@ -1,8 +1,8 @@
 require 'lock_and_cache/version'
 require 'timeout'
+require 'zlib'
 require 'redis'
 require 'redlock'
-require 'hash_digest'
 require 'active_support'
 require 'active_support/core_ext'
 
@@ -84,13 +84,13 @@ module LockAndCache
 
     def initialize(obj, method_id, parts)
       @obj = obj
-      @method_id = method_id
+      @method_id = method_id.to_s
       @_parts = parts
     end
 
     # A (non-cryptographic) digest of the key parts for use as the redis cache key
     def digest
-      @digest ||= ::HashDigest.digest3([obj_class_name, method_id] + parts)
+      @digest ||= ::Zlib::Deflate.deflate(::Marshal.dump([obj_class_name, method_id] + parts), ::Zlib::BEST_SPEED)
     end
 
     # A human-readable representation of the key parts

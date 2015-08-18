@@ -82,7 +82,6 @@ end
 * [activesupport](https://rubygems.org/gems/activesupport) (come on, it's the bomb)
 * [redis](https://github.com/redis/redis-rb)
 * [redlock](https://github.com/leandromoreira/redlock-rb)
-* [hash_digest](https://github.com/seamusabshere/hash_digest) (which requires [murmurhash3](https://github.com/funny-falcon/murmurhash3-ruby))
 
 ## Contributing
 

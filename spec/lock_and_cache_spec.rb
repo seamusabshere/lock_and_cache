@@ -168,6 +168,21 @@ describe LockAndCache do
       end
     end
 
+    describe 'keying' do
+      it "doesn't conflate symbol and string args" do
+        symbol = LockAndCache::Key.new(Foo.new(:me), :click, a: 1)
+        string = LockAndCache::Key.new(Foo.new(:me), :click, 'a' => 1)
+        expect(symbol.digest).not_to eq(string.digest)
+      end
+
+      it "cares about order" do
+        symbol = LockAndCache::Key.new(Foo.new(:me), :click, {a: 1, b: 2})
+        string = LockAndCache::Key.new(Foo.new(:me), :click, {b: 2, a: 1})
+        expect(symbol.digest).not_to eq(string.digest)
+      end
+
+    end
+
   end
 
 end

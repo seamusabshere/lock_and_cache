@@ -1,3 +1,9 @@
+unreleased
+
+* Breaking changes
+
+  * Stricter key digest - differentiates symbols and strings
+
 1.1.0 / 2015-08-07
 
 * Breaking changes
