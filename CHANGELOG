@@ -4,6 +4,10 @@ unreleased
 
   * Stricter key digest - differentiates symbols and strings
 
+* Bug fixes
+
+  * Allow method names with non-word chars like #foo?
+
 1.1.0 / 2015-08-07
 
 * Breaking changes

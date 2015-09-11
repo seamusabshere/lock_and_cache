@@ -136,8 +136,8 @@ module LockAndCache
   def lock_and_cache(*key_parts)
     raise "need a block" unless block_given?
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
-    caller[0] =~ /in `(\w+)'/
-    method_id = $1 or raise "couldn't get method_id from #{kaller[0]}"
+    caller[0] =~ /in `([^']+)'/
+    method_id = $1 or raise "couldn't get method_id from #{caller[0]}"
     options = key_parts.last.is_a?(Hash) ? key_parts.pop.stringify_keys : {}
     expires = options['expires']
     lock_expires = options.fetch 'lock_expires', LockAndCache.lock_expires
