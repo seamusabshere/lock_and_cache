@@ -1,5 +1,7 @@
 require 'lock_and_cache/version'
 require 'timeout'
+require 'digest/md5'
+require 'base64'
 require 'zlib'
 require 'redis'
 require 'redlock'
@@ -84,19 +86,26 @@ module LockAndCache
 
     def initialize(obj, method_id, parts)
       @obj = obj
-      @method_id = method_id.to_s
+      @method_id = method_id.to_sym
       @_parts = parts
     end
 
-    # A (non-cryptographic) digest of the key parts for use as the redis cache key
+    # A (non-cryptographic) digest of the key parts for use as the cache key
     def digest
-      @digest ||= ::Zlib::Deflate.deflate(::Marshal.dump([obj_class_name, method_id] + parts), ::Zlib::BEST_SPEED)
+      @digest ||= ::Zlib::Deflate.deflate(::Marshal.dump(key), ::Zlib::BEST_SPEED)
+    end
+
+    # A (non-cryptographic) digest of the key parts for use as the lock key
+    def lock_digest
+      @lock_digest ||= 'lock/' + digest
     end
 
     # A human-readable representation of the key parts
-    def debug
-      @debug ||= [obj_class_name, method_id] + parts
+    def key
+      @key ||= [obj_class_name, method_id, parts]
     end
+
+    alias debug key
 
     # An array of the parts we use for the key
     def parts
@@ -117,15 +126,13 @@ module LockAndCache
 
   end
 
-  # Clear a cache given exactly the method and exactly the same arguments
-  #
-  # @note Does not unlock.
+  # Clear a lock and cache given exactly the method and exactly the same arguments
   def lock_and_cache_clear(method_id, *key_parts)
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
     key = LockAndCache::Key.new self, method_id, key_parts
-    Thread.exclusive { $stderr.puts "[lock_and_cache] clear #{key.debug}" } if debug
-    digest = key.digest
-    LockAndCache.storage.del digest
+    Thread.exclusive { $stderr.puts "[lock_and_cache] clear #{key.debug} #{Base64.encode64(key.digest).strip} #{Digest::MD5.hexdigest key.digest}" } if debug
+    LockAndCache.storage.del key.digest
+    LockAndCache.storage.del key.lock_digest
   end
 
   # Lock and cache a method given key parts.
@@ -145,29 +152,29 @@ module LockAndCache
     max_lock_wait = options.fetch 'max_lock_wait', LockAndCache.max_lock_wait
     key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
-    storage = LockAndCache.storage
-    Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug}" } if debug
+    storage = LockAndCache.storage or raise("must set LockAndCache.storage=[Redis]")
+    Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
     if storage.exists digest
       return ::Marshal.load(storage.get(digest))
     end
-    Thread.exclusive { $stderr.puts "[lock_and_cache] B1 #{key.debug}" } if debug
+    Thread.exclusive { $stderr.puts "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
     retval = nil
     lock_manager = LockAndCache.lock_manager
-    lock_digest = 'lock/' + digest
+    lock_digest = key.lock_digest
     lock_info = nil
     begin
       Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
         until lock_info = lock_manager.lock(lock_digest, lock_expires)
-          Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug}" } if debug
+          Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
           sleep lock_spin
         end
       end
-      Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug}" } if debug
+      Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
       if storage.exists digest
-        Thread.exclusive { $stderr.puts "[lock_and_cache] E1 #{key.debug}" } if debug
+        Thread.exclusive { $stderr.puts "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
         retval = ::Marshal.load storage.get(digest)
       else
-        Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug}" } if debug
+        Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
         retval = yield
         if expires
           storage.setex digest, expires, ::Marshal.dump(retval)

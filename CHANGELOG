@@ -8,6 +8,10 @@ unreleased
 
   * Allow method names with non-word chars like #foo?
 
+* Enhancements
+
+  * #lock_and_cache_clear now clears lock too
+
 1.1.0 / 2015-08-07
 
 * Breaking changes
