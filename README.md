@@ -34,6 +34,8 @@ As you can see, most caching libraries only take care of (1) and (4).
 
 Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).
 
+Above and beyond Redlock, a 2-second heartbeat is used that will clear the lock if a process is killed. This is implemented using lock extensions.
+
 ```ruby
 LockAndCache.storage = Redis.new
 ```
@@ -73,8 +75,6 @@ end
 ## Tunables
 
 * `LockAndCache.storage=[redis]`
-* `LockAndCache.lock_expires=[seconds]` default is 3 days
-* `LockAndCache.lock_spin=[seconds]` (how long to wait before retrying lock) default is 0.1 seconds
 * `ENV['LOCK_AND_CACHE_DEBUG']='true'` if you want some debugging output on `$stderr`
 
 ## Few dependencies

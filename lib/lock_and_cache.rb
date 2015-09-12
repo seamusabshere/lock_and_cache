@@ -12,9 +12,13 @@ require 'active_support/core_ext'
 #
 # I bet you're caching, but are you locking?
 module LockAndCache
-  DEFAULT_LOCK_EXPIRES = 60 * 60 * 24 * 1 * 1000 # 1 day in milliseconds
-  DEFAULT_LOCK_SPIN = 0.1
   DEFAULT_MAX_LOCK_WAIT = 60 * 60 * 24 # 1 day in seconds
+
+  # @private
+  LOCK_HEARTBEAT_EXPIRES = 2
+
+  # @private
+  LOCK_HEARTBEAT_PERIOD = 1
 
   class TimeoutWaitingForLock < StandardError; end
 
@@ -22,7 +26,7 @@ module LockAndCache
   def LockAndCache.storage=(redis_connection)
     raise "only redis for now" unless redis_connection.class.to_s == 'Redis'
     @storage = redis_connection
-    @lock_manager = Redlock::Client.new [redis_connection]
+    @lock_manager = Redlock::Client.new [redis_connection], retry_count: 1
   end
 
   # @return [Redis] The redis connection used for lock and cached value storage
@@ -35,31 +39,6 @@ module LockAndCache
   # @note If you are sharing a redis database, it will clear it...
   def LockAndCache.flush
     storage.flushdb
-  end
-
-  # @param seconds [Numeric] Lock expiry in seconds.
-  #
-  # @note Can be overridden by putting `expires:` in your call to `#lock_and_cache`
-  def LockAndCache.lock_expires=(seconds)
-    @lock_expires = seconds.to_f * 1000
-  end
-
-  # @return [Numeric] Lock expiry in milliseconds.
-  # @private
-  def LockAndCache.lock_expires
-    @lock_expires || DEFAULT_LOCK_EXPIRES
-  end
-
-  # @param seconds [Numeric] How long to wait before trying a lock again, in seconds
-  #
-  # @note Can be overridden by putting `lock_spin:` in your call to `#lock_and_cache`
-  def LockAndCache.lock_spin=(seconds)
-    @lock_spin = seconds.to_f
-  end
-
-  # @private
-  def LockAndCache.lock_spin
-    @lock_spin || DEFAULT_LOCK_SPIN
   end
 
   # @param seconds [Numeric] Maximum wait time to get a lock
@@ -126,6 +105,12 @@ module LockAndCache
 
   end
 
+  def lock_and_cache_locked?(method_id, *key_parts)
+    debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
+    key = LockAndCache::Key.new self, method_id, key_parts
+    LockAndCache.storage.exists key.lock_digest
+  end
+
   # Clear a lock and cache given exactly the method and exactly the same arguments
   def lock_and_cache_clear(method_id, *key_parts)
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
@@ -147,8 +132,6 @@ module LockAndCache
     method_id = $1 or raise "couldn't get method_id from #{caller[0]}"
     options = key_parts.last.is_a?(Hash) ? key_parts.pop.stringify_keys : {}
     expires = options['expires']
-    lock_expires = options.fetch 'lock_expires', LockAndCache.lock_expires
-    lock_spin = options.fetch 'lock_spin', LockAndCache.lock_spin
     max_lock_wait = options.fetch 'max_lock_wait', LockAndCache.max_lock_wait
     key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
@@ -164,9 +147,9 @@ module LockAndCache
     lock_info = nil
     begin
       Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
-        until lock_info = lock_manager.lock(lock_digest, lock_expires)
+        until lock_info = lock_manager.lock(lock_digest, LockAndCache::LOCK_HEARTBEAT_EXPIRES*1000)
           Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
-          sleep lock_spin
+          sleep rand
         end
       end
       Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
@@ -175,11 +158,28 @@ module LockAndCache
         retval = ::Marshal.load storage.get(digest)
       else
         Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
-        retval = yield
-        if expires
-          storage.setex digest, expires, ::Marshal.dump(retval)
-        else
-          storage.set digest, ::Marshal.dump(retval)
+        done = false
+        begin
+          lock_extender = Thread.new do
+            loop do
+              Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+              break if done
+              sleep LockAndCache::LOCK_HEARTBEAT_PERIOD
+              break if done
+              Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+              lock_manager.lock lock_digest, LockAndCache::LOCK_HEARTBEAT_EXPIRES*1000, extend: lock_info
+            end
+          end
+          retval = yield
+          if expires
+            storage.setex digest, expires, ::Marshal.dump(retval)
+          else
+            storage.set digest, ::Marshal.dump(retval)
+          end
+        ensure
+          done = true
+          lock_extender.exit if lock_extender.alive?
+          lock_extender.join if lock_extender.status.nil?
         end
       end
     ensure

@@ -65,6 +65,24 @@ class Bar
   end
 end
 
+class Sleeper
+  include LockAndCache
+
+  def initialize
+    @id = SecureRandom.hex
+  end
+
+  def poke
+    lock_and_cache do
+      sleep
+    end
+  end
+
+  def lock_and_cache_key
+    @id
+  end
+end
+
 describe LockAndCache do
   before do
     LockAndCache.flush
@@ -167,6 +185,45 @@ describe LockAndCache do
         LockAndCache.max_lock_wait = old_max
       end
     end
+
+    it 'unlocks if a process dies' do
+      child = nil
+      begin
+        sleeper = Sleeper.new
+        child = fork do
+          sleeper.poke
+        end
+        sleep 0.1
+        expect(sleeper.lock_and_cache_locked?(:poke)).to eq(true)  # the other process has it
+        Process.kill 'KILL', child
+        expect(sleeper.lock_and_cache_locked?(:poke)).to eq(true)  # the other (dead) process still has it
+        sleep 2
+        expect(sleeper.lock_and_cache_locked?(:poke)).to eq(false) # but now it should be cleared because no heartbeat
+      ensure
+        Process.kill('KILL', child) rescue Errno::ESRCH
+      end
+    end
+
+    it "pays attention to heartbeats" do
+      child = nil
+      begin
+        sleeper = Sleeper.new
+        child = fork do
+          sleeper.poke
+        end
+        sleep 0.1
+        expect(sleeper.lock_and_cache_locked?(:poke)).to eq(true) # the other process has it
+        sleep 2
+        expect(sleeper.lock_and_cache_locked?(:poke)).to eq(true) # the other process still has it
+        sleep 2
+        expect(sleeper.lock_and_cache_locked?(:poke)).to eq(true) # the other process still has it
+        sleep 2
+        expect(sleeper.lock_and_cache_locked?(:poke)).to eq(true) # the other process still has it
+      ensure
+        Process.kill('TERM', child) rescue Errno::ESRCH
+      end
+    end
+
   end
 
   describe 'keying' do
