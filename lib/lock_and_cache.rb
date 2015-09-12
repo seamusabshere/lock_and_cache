@@ -114,7 +114,7 @@ module LockAndCache
   def lock_and_cache_clear(method_id, *key_parts)
     debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
     key = LockAndCache::Key.new self, method_id, key_parts
-    Thread.exclusive { $stderr.puts "[lock_and_cache] clear #{key.debug} #{Base64.encode64(key.digest).strip} #{Digest::MD5.hexdigest key.digest}" } if debug
+    Thread.exclusive { $stderr.puts "[lock_and_cache] clear #{key.debug} #{Base64.encode64(key.digest).strip} #{Digest::SHA1.hexdigest key.digest}" } if debug
     LockAndCache.storage.del key.digest
     LockAndCache.storage.del key.lock_digest
   end
@@ -135,11 +135,11 @@ module LockAndCache
     key = LockAndCache::Key.new self, method_id, key_parts
     digest = key.digest
     storage = LockAndCache.storage or raise("must set LockAndCache.storage=[Redis]")
-    Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+    Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
     if storage.exists digest
       return ::Marshal.load(storage.get(digest))
     end
-    Thread.exclusive { $stderr.puts "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+    Thread.exclusive { $stderr.puts "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
     retval = nil
     lock_manager = LockAndCache.lock_manager
     lock_digest = key.lock_digest
@@ -147,25 +147,25 @@ module LockAndCache
     begin
       Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
         until lock_info = lock_manager.lock(lock_digest, LockAndCache::LOCK_HEARTBEAT_EXPIRES*1000)
-          Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+          Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
           sleep rand
         end
       end
-      Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+      Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
       if storage.exists digest
-        Thread.exclusive { $stderr.puts "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+        Thread.exclusive { $stderr.puts "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
         retval = ::Marshal.load storage.get(digest)
       else
-        Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+        Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
         done = false
         begin
           lock_extender = Thread.new do
             loop do
-              Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+              Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
               break if done
               sleep LockAndCache::LOCK_HEARTBEAT_PERIOD
               break if done
-              Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::MD5.hexdigest digest}" } if debug
+              Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
               lock_manager.lock lock_digest, LockAndCache::LOCK_HEARTBEAT_EXPIRES*1000, extend: lock_info
             end
           end
