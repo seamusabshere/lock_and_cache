@@ -1,8 +1,7 @@
 require 'lock_and_cache/version'
 require 'timeout'
-require 'digest/md5'
+require 'digest/sha1'
 require 'base64'
-require 'zlib'
 require 'redis'
 require 'redlock'
 require 'active_support'
@@ -71,7 +70,7 @@ module LockAndCache
 
     # A (non-cryptographic) digest of the key parts for use as the cache key
     def digest
-      @digest ||= ::Zlib::Deflate.deflate(::Marshal.dump(key), ::Zlib::BEST_SPEED)
+      @digest ||= ::Digest::SHA1.hexdigest ::Marshal.dump(key)
     end
 
     # A (non-cryptographic) digest of the key parts for use as the lock key
