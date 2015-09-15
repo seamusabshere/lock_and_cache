@@ -177,7 +177,6 @@ module LockAndCache
           end
         ensure
           done = true
-          lock_extender.exit if lock_extender.alive?
           lock_extender.join if lock_extender.status.nil?
         end
       end
