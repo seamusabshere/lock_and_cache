@@ -1,3 +1,9 @@
+2.0.1 / 2015-09-14
+
+* Bug fixes
+
+  * Don't explicitly kill the lock extender thread because that sometimes causes deadlocks (don't know why)
+
 2.0.0 / 2015-09-11
 
 * Breaking changes
