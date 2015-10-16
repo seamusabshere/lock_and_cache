@@ -15,6 +15,12 @@ class Foo
     end
   end
 
+  def click_null
+    lock_and_cache do
+      nil
+    end
+  end
+
   def click_exp
     lock_and_cache(expires: 1, foo: :bar) do
       @count_exp += 1
@@ -110,6 +116,11 @@ describe LockAndCache do
       expect(foo.click_exp).to eq(1)
       sleep 2
       expect(foo.click_exp).to eq(2)
+    end
+
+    it "can cache null" do
+      expect(foo.click_null).to eq(nil)
+      expect(foo.click_null).to eq(nil)
     end
   end
 

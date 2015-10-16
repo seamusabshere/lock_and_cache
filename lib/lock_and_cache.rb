@@ -136,8 +136,8 @@ module LockAndCache
     digest = key.digest
     storage = LockAndCache.storage or raise("must set LockAndCache.storage=[Redis]")
     Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
-    if storage.exists digest
-      return ::Marshal.load(storage.get(digest))
+    if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
+      return ::Marshal.load(existing)
     end
     Thread.exclusive { $stderr.puts "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
     retval = nil
@@ -152,10 +152,11 @@ module LockAndCache
         end
       end
       Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
-      if storage.exists digest
+      if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
         Thread.exclusive { $stderr.puts "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
-        retval = ::Marshal.load storage.get(digest)
-      else
+        retval = ::Marshal.load existing
+      end
+      unless retval
         Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
         done = false
         begin

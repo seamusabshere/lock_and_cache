@@ -1,3 +1,9 @@
+unreleased
+
+* Bug fixes (?)
+
+  * Make sure cached values are valid marshal format (seen in the wild that they're nil)
+
 2.0.1 / 2015-09-14
 
 * Bug fixes
