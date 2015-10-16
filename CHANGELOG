@@ -4,6 +4,10 @@ unreleased
 
   * Make sure cached values are valid marshal format (seen in the wild that they're nil)
 
+* Enhancements
+
+  * Use original redlock gem now that it supports extend
+
 2.0.1 / 2015-09-14
 
 * Bug fixes
