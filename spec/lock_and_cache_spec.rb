@@ -7,6 +7,8 @@ class Foo
     @id = id
     @count = 0
     @count_exp = 0
+    @click_single_hash_arg_as_options = 0
+    @click_last_hash_as_options = 0
   end
 
   def click
@@ -22,8 +24,22 @@ class Foo
   end
 
   def click_exp
-    lock_and_cache(expires: 1, foo: :bar) do
+    lock_and_cache(expires: 1) do
       @count_exp += 1
+    end
+  end
+
+  # foo will be treated as option, so this is cacheable
+  def click_single_hash_arg_as_options
+    lock_and_cache(foo: rand, expires: 1) do
+      @click_single_hash_arg_as_options += 1
+    end
+  end
+
+  # foo will be treated as part of cache key, so this is uncacheable
+  def click_last_hash_as_options
+    lock_and_cache({foo: rand}, expires: 1) do
+      @click_last_hash_as_options += 1
     end
   end
 
@@ -114,7 +130,7 @@ describe LockAndCache do
     it "can be expired" do
       expect(foo.click_exp).to eq(1)
       expect(foo.click_exp).to eq(1)
-      sleep 2
+      sleep 1.5
       expect(foo.click_exp).to eq(2)
     end
 
@@ -122,6 +138,20 @@ describe LockAndCache do
       expect(foo.click_null).to eq(nil)
       expect(foo.click_null).to eq(nil)
     end
+
+    it "treats single hash arg as options" do
+      expect(foo.click_single_hash_arg_as_options).to eq(1)
+      expect(foo.click_single_hash_arg_as_options).to eq(1)
+      sleep 1.1
+      expect(foo.click_single_hash_arg_as_options).to eq(2)
+    end
+
+    it "treats last hash as options" do
+      expect(foo.click_last_hash_as_options).to eq(1)
+      expect(foo.click_last_hash_as_options).to eq(2) # it's uncacheable to prove we're not using as part of options
+      expect(foo.click_last_hash_as_options).to eq(3)
+    end
+
   end
 
   describe "locking" do
@@ -237,17 +267,100 @@ describe LockAndCache do
 
   end
 
-  describe 'keying' do
-    it "doesn't conflate symbol and string args" do
-      symbol = LockAndCache::Key.new(Foo.new(:me), :click, a: 1)
-      string = LockAndCache::Key.new(Foo.new(:me), :click, 'a' => 1)
-      expect(symbol.digest).not_to eq(string.digest)
+  describe 'standalone' do
+    it 'works like you expect' do
+      count = 0
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)
+      expect(count).to eq(1)
     end
 
-    it "cares about order" do
-      symbol = LockAndCache::Key.new(Foo.new(:me), :click, {a: 1, b: 2})
-      string = LockAndCache::Key.new(Foo.new(:me), :click, {b: 2, a: 1})
-      expect(symbol.digest).not_to eq(string.digest)
+    it 'allows expiry' do
+      count = 0
+      expect(LockAndCache.lock_and_cache('hello', expires: 1) { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      sleep 1.1
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(2)
+      expect(count).to eq(2)
+    end
+
+    it 'allows clearing' do
+      count = 0
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      LockAndCache.clear('hello')
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(2)
+      expect(count).to eq(2)
+    end
+
+    it 'allows multi-part keys' do
+      count = 0
+      expect(LockAndCache.lock_and_cache(['hello', 1, { target: 'world' }]) { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      expect(LockAndCache.lock_and_cache(['hello', 1, { target: 'world' }]) { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+    end
+    
+    it 'treats a single hash arg as a cache key (not as options)' do
+      count = 0
+      LockAndCache.lock_and_cache(hello: 'world', expires: 100) { count += 1 }
+      expect(count).to eq(1)
+      LockAndCache.lock_and_cache(hello: 'world', expires: 100) { count += 1 }
+      expect(count).to eq(1)
+      LockAndCache.lock_and_cache(hello: 'world', expires: 200) { count += 1 } # expires is being treated as part of cache key
+      expect(count).to eq(2)
+    end
+
+    it "correctly identifies options hash" do
+      count = 0
+      LockAndCache.lock_and_cache({ hello: 'world' }, expires: 1, ignored: rand) { count += 1 }
+      expect(count).to eq(1)
+      LockAndCache.lock_and_cache({ hello: 'world' }, expires: 1, ignored: rand) { count += 1 } # expires is not being treated as part of cache key
+      expect(count).to eq(1)
+      sleep 1.1
+      LockAndCache.lock_and_cache({ hello: 'world' }) { count += 1 }
+      expect(count).to eq(2)
+    end
+  end
+
+  describe "shorter expiry for null results" do
+    it "optionally caches null for less time" do
+      count = 0
+      LockAndCache.lock_and_cache('hello', nil_expires: 1, expires: 2) { count += 1; nil }
+      expect(count).to eq(1)
+      LockAndCache.lock_and_cache('hello', nil_expires: 1, expires: 2) { count += 1; nil }
+      expect(count).to eq(1)
+      sleep 1.1 # this is enough to expire
+      LockAndCache.lock_and_cache('hello', nil_expires: 1, expires: 2) { count += 1; nil }
+      expect(count).to eq(2)
+    end
+
+    it "normally caches null for the same amount of time" do
+      count = 0
+      expect(LockAndCache.lock_and_cache('hello', expires: 1) { count += 1; nil }).to be_nil
+      expect(count).to eq(1)
+      expect(LockAndCache.lock_and_cache('hello', expires: 1) { count += 1; nil }).to be_nil
+      expect(count).to eq(1)
+      sleep 1.1
+      expect(LockAndCache.lock_and_cache('hello', expires: 1) { count += 1; nil }).to be_nil
+      expect(count).to eq(2)
+    end
+
+    it "caches non-null for normal time" do
+      count = 0
+      LockAndCache.lock_and_cache('hello', nil_expires: 1, expires: 2) { count += 1; true }
+      expect(count).to eq(1)
+      LockAndCache.lock_and_cache('hello', nil_expires: 1, expires: 2) { count += 1; true }
+      expect(count).to eq(1)
+      sleep 1.1
+      LockAndCache.lock_and_cache('hello', nil_expires: 1, expires: 2) { count += 1; true }
+      expect(count).to eq(1)
+      sleep 1
+      LockAndCache.lock_and_cache('hello', nil_expires: 1, expires: 2) { count += 1; true }
+      expect(count).to eq(2)
     end
   end
 

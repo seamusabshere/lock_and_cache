@@ -30,7 +30,7 @@ As you can see, most caching libraries only take care of (1) and (4).
 
 ## Practice
 
-### Locking (antirez's Redlock)
+### Locking
 
 Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).
 
@@ -42,35 +42,103 @@ LockAndCache.storage = Redis.new
 
 It will use this redis for both locking and storing cached values.
 
-### Caching (block inside of a method)
+### Caching
 
 (be sure to set up storage as above)
 
-You put a block inside of a method:
+#### Standalone mode
 
 ```ruby
-class Blog
-  def click(arg1, arg2)
-    lock_and_cache(arg1, arg2, expires: 5) do
+LockAndCache.lock_and_cache('stock_price') do
+  # get yer stock quote
+end
+```
+
+But that's probably not very useful without parameters
+
+```ruby
+LockAndCache.lock_and_cache('stock_price', company: 'MSFT', date: '2015-05-05') do
+  # get yer stock quote
+end
+```
+
+And you probably want an expiry
+
+```ruby
+LockAndCache.lock_and_cache('stock_price', {company: 'MSFT', date: '2015-05-05'}, expires: 10) do
+  # get yer stock quote
+end
+```
+
+Note how we separated options (`{expires: 10}`) from a hash that is part of the cache key (`{company: 'MSFT', date: '2015-05-05'}`).
+
+You can clear a cache:
+
+```ruby
+LockAndCache.lock_and_cache('stock_price', company: 'MSFT', date: '2015-05-05')
+```
+
+One other crazy thing: let's say you want to check more often if the external stock price service returned nil
+
+```ruby
+LockAndCache.lock_and_cache('stock_price', {company: 'MSFT', date: '2015-05-05'}, expires: 10, nil_expires: 1) do
+  # get yer stock quote
+end
+```
+
+#### Context mode
+
+"Context mode" simply adds the class name, method name, and context key (the results of `#id` or `#lock_and_cache_key`) of the caller to the cache key.
+
+(This gem evolved from https://github.com/seamusabshere/cache_method, where you always cached a method call...)
+
+```ruby
+class Stock
+  include LockAndCache
+
+  def initialize(ticker_symbol)
+    [...]
+  end
+
+  def price(date)
+    lock_and_cache(date, expires: 10) do # <------ see how the cache key depends on the method args?
       # do the work
     end
   end
-end
-```
 
-The key will be `{ Blog, :click, $id, $arg1, $arg2 }`. In other words, it auto-detects the class, method, object id ... and you add other args if you want.
-
-You can change the object id easily:
-
-```ruby
-class Blog
-  # [...]
-  # if you don't define this, it will try to call #id
-  def lock_and_cache_key
-    [author, title]
+  def lock_and_cache_key # <---------- if you don't define this, it will try to call #id
+    ticker_symbol
   end
 end
 ```
+
+The key will be `{ StockQuote, :get, $id, $date, }`. In other words, it auto-detects the class, method, context key ... and you add other args if you want.
+
+Here's how to clear a cache in context mode:
+
+```ruby
+blog.lock_and_cache_clear(:get, date)
+```
+
+## Special features
+
+### Locking of course!
+
+Most caching libraries don't do locking, meaning that >1 process can be calculating a cached value at the same time. Since you presumably cache things because they cost CPU, database reads, or money, doesn't it make sense to lock while caching?
+
+### Heartbeat
+
+If the process holding the lock dies, we automatically remove the lock so somebody else can do it (using heartbeats and redlock extends).
+
+### Context mode
+
+This pulls information about the context of a lock_and_cache block from the surrounding class, method, and object... so that you don't have to!
+
+Standalone mode is cool too, tho.
+
+### nil_expires
+
+You can expire nil values with a different timeout (`nil_expires`) than other values (`expires`).
 
 ## Tunables
 
@@ -82,6 +150,13 @@ end
 * [activesupport](https://rubygems.org/gems/activesupport) (come on, it's the bomb)
 * [redis](https://github.com/redis/redis-rb)
 * [redlock](https://github.com/leandromoreira/redlock-rb)
+
+## Wishlist
+
+* Convert most tests to use standalone mode, which is easier to understand
+* Check options
+* Lengthen heartbeat so it's not so sensitive
+* Clarify which options are seconds or milliseconds
 
 ## Contributing
 
