@@ -287,6 +287,14 @@ describe LockAndCache do
       expect(count).to eq(2)
     end
 
+    it "requires a key" do
+      expect do
+        LockAndCache.lock_and_cache do
+          raise "this won't happen"
+        end
+      end.to raise_error(/need/)
+    end
+
     it 'allows clearing' do
       count = 0
       expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)

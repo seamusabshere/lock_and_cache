@@ -54,6 +54,7 @@ module LockAndCache
   # @note A single hash arg is treated as a cached key. `LockAndCache.lock_and_cache(foo: :bar, expires: 100)` will be treated as a cache key of `foo: :bar, expires: 100` (which is probably wrong!!!). `LockAndCache.lock_and_cache({foo: :bar}, expires: 100)` will be treated as a cache key of `foo: :bar` and options `expires: 100`. This is the opposite of context mode and is true because we don't have any context to set the cache key from otherwise.
   def LockAndCache.lock_and_cache(*key_parts_and_options, &blk)
     options = (key_parts_and_options.last.is_a?(Hash) && key_parts_and_options.length > 1) ? key_parts_and_options.pop : {}
+    raise "need a cache key" unless key_parts_and_options.length > 0
     key = LockAndCache::Key.new key_parts_and_options
     action = LockAndCache::Action.new key, options, blk
     action.perform
