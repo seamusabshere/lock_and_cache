@@ -15,6 +15,31 @@ Lock and cache using redis!
 
 We use [`lock_and_cache`](https://rubygems.org/gems/lock_and_cache) for [big data-driven marketing at Faraday](http://faraday.io).
 
+## TOC
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+  - [Theory](#theory)
+  - [Practice](#practice)
+    - [Locking](#locking)
+    - [Caching](#caching)
+      - [Standalone mode](#standalone-mode)
+      - [Context mode](#context-mode)
+  - [Special features](#special-features)
+    - [Locking of course!](#locking-of-course)
+    - [Heartbeat](#heartbeat)
+    - [Context mode](#context-mode-1)
+    - [nil_expires](#nil_expires)
+  - [Tunables](#tunables)
+  - [Few dependencies](#few-dependencies)
+  - [Wishlist](#wishlist)
+  - [Contributing](#contributing)
+- [Copyright](#copyright)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Theory
 
 `lock_and_cache`...
