@@ -47,7 +47,7 @@ module LockAndCache
   #
   # @note Standalone mode. See also "context mode," where you mix LockAndCache into a class and call it from within its methods.
   #
-  # @note A single hash arg is treated as a cached key. `LockAndCache.lock_and_cache(foo: :bar, expires: 100)` will be treated as a cache key of `foo: :bar, expires: 100` (which is probably wrong!!!). `LockAndCache.lock_and_cache({foo: :bar}, expires: 100)` will be treated as a cache key of `foo: :bar` and options `expires: 100`. This is the opposite of context mode and is true because we don't have any context to set the cache key from otherwise.
+  # @note A single hash arg is treated as a cache key, e.g. `LockAndCache.lock_and_cache(foo: :bar, expires: 100)` will be treated as a cache key of `foo: :bar, expires: 100` (which is probably wrong!!!). Try `LockAndCache.lock_and_cache({ foo: :bar }, expires: 100)` instead. This is the opposite of context mode.
   def LockAndCache.lock_and_cache(*key_parts_and_options, &blk)
     options = (key_parts_and_options.last.is_a?(Hash) && key_parts_and_options.length > 1) ? key_parts_and_options.pop : {}
     raise "need a cache key" unless key_parts_and_options.length > 0
@@ -105,7 +105,7 @@ module LockAndCache
 
   # Check if a method is locked on an object.
   #
-  # @note Subject mode - this is expected to be called on an object that has LockAndCache mixed in. See also standalone mode.
+  # @note Subject mode - this is expected to be called on an object whose class has LockAndCache mixed in. See also standalone mode.
   def lock_and_cache_locked?(method_id, *key_parts)
     key = LockAndCache::Key.new key_parts, context: self, method_id: method_id
     key.locked?
@@ -113,7 +113,7 @@ module LockAndCache
 
   # Clear a lock and cache given exactly the method and exactly the same arguments
   #
-  # @note Subject mode - this is expected to be called on an object that has LockAndCache mixed in. See also standalone mode.
+  # @note Subject mode - this is expected to be called on an object whose class has LockAndCache mixed in. See also standalone mode.
   def lock_and_cache_clear(method_id, *key_parts)
     key = LockAndCache::Key.new key_parts, context: self, method_id: method_id
     key.clear
@@ -121,15 +121,15 @@ module LockAndCache
 
   # Lock and cache a method given key parts.
   #
-  # This is the defining characteristic of context mode: the cache key will automatically include the class name of the object calling it (the context!) and the name of the method it is called from.
+  # The cache key will automatically include the class name of the object calling it (the context!) and the name of the method it is called from.
   #
   # @param key_parts_and_options [*] Parts that you want to include in the lock and cache key. If the last element is a Hash, it will be treated as options.
   #
   # @return The cached value (possibly newly calculated).
   #
-  # @note Subject mode - this is expected to be called on an object that has LockAndCache mixed in. See also standalone mode.
+  # @note Subject mode - this is expected to be called on an object whose class has LockAndCache mixed in. See also standalone mode.
   #
-  # @note A single hash arg is treated as an options hash. `lock_and_cache(expires: 100)` will be treated as options `expires: 100`. This is the opposite of standalone mode and true because we want to support people constructing cache keys from the context (context) PLUS an arbitrary hash of stuff.
+  # @note A single hash arg is treated as an options hash, e.g. `lock_and_cache(expires: 100)` will be treated as options `expires: 100`. This is the opposite of standalone mode.
   def lock_and_cache(*key_parts_and_options, &blk)
     options = key_parts_and_options.last.is_a?(Hash) ? key_parts_and_options.pop : {}
     key = LockAndCache::Key.new key_parts_and_options, context: self, caller: caller

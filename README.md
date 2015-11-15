@@ -9,6 +9,22 @@
 
 Lock and cache using redis!
 
+Most caching libraries don't do locking, meaning that >1 process can be calculating a cached value at the same time. Since you presumably cache things because they cost CPU, database reads, or money, doesn't it make sense to lock while caching?
+
+## Quickstart
+
+```ruby
+LockAndCache.storage = Redis.new
+
+LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10, nil_expires: 1) do
+  # get yer stock quote
+  # if 50 processes call this at the same time, only 1 will call the stock quote service
+  # the other 49 will wait on the lock, then get the cached value
+  # the value will expire in 10 seconds
+  # but if the value you get back is nil, that will expire after 1 second
+end
+```
+
 ## Sponsor
 
 <p><a href="http://faraday.io"><img src="https://s3.amazonaws.com/photos.angel.co/startups/i/175701-a63ebd1b56a401e905963c64958204d4-medium_jpg.jpg" alt="Faraday logo"/></a></p>
@@ -44,22 +60,18 @@ We use [`lock_and_cache`](https://rubygems.org/gems/lock_and_cache) for [big dat
 
 `lock_and_cache`...
 
-1. returns cached value if found
-2. acquires a lock
-3. returns cached value if found (just in case it was calculated while we were waiting for a lock)
-4. calculates and caches the value
-5. releases the lock
-6. returns the value
+1. <span style="color: red;">returns cached value</span> (if exists)
+2. <span style="color: green;">acquires a lock</span>
+3. <span style="color: red;">returns cached value</span> (just in case it was calculated while we were waiting for a lock)
+4. <span style="color: red;">calculates and caches the value</span>
+5. <span style="color: green;">releases the lock</span>
+6. <span style="color: red;">returns the value</span>
 
-As you can see, most caching libraries only take care of (1) and (4).
+As you can see, most caching libraries only take care of (1) and (4) (well, and (5) of course).
 
 ## Practice
 
-### Locking
-
-Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).
-
-Above and beyond Redlock, a 32-second heartbeat is used that will clear the lock if a process is killed. This is implemented using lock extensions.
+### Setup
 
 ```ruby
 LockAndCache.storage = Redis.new
@@ -67,79 +79,102 @@ LockAndCache.storage = Redis.new
 
 It will use this redis for both locking and storing cached values.
 
+### Locking
+
+Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).
+
+Above and beyond Redlock, a 32-second heartbeat is used that will clear the lock if a process is killed. This is implemented using lock extensions.
+
 ### Caching
 
-(be sure to set up storage as above)
+This gem is a simplified, improved version of https://github.com/seamusabshere/cache_method. In that library, you could only cache a method call.
+
+In this library, you have two options: providing the whole cache key every time (standalone) or letting the library pull information about its context.
+
+```ruby
+# standalone example
+LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10) do
+  # ...
+end
+
+# context example
+def stock_price(date)
+  lock_and_cache(date, expires: 10) do
+    # ...
+  end
+end
+def lock_and_cache_key
+  company
+end
+```
 
 #### Standalone mode
 
 ```ruby
-LockAndCache.lock_and_cache('stock_price') do
+LockAndCache.lock_and_cache(:stock_price, company: 'MSFT', date: '2015-05-05') do
   # get yer stock quote
 end
 ```
 
-But that's probably not very useful without parameters
+You probably want an expiry
 
 ```ruby
-LockAndCache.lock_and_cache('stock_price', company: 'MSFT', date: '2015-05-05') do
-  # get yer stock quote
-end
-```
-
-And you probably want an expiry
-
-```ruby
-LockAndCache.lock_and_cache('stock_price', {company: 'MSFT', date: '2015-05-05'}, expires: 10) do
+LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10) do
   # get yer stock quote
 end
 ```
 
 Note how we separated options (`{expires: 10}`) from a hash that is part of the cache key (`{company: 'MSFT', date: '2015-05-05'}`).
 
-You can clear a cache:
+One other crazy thing: `nil_expires` - for when you want to check more often if the external stock price service returned nil
 
 ```ruby
-LockAndCache.lock_and_cache('stock_price', company: 'MSFT', date: '2015-05-05')
-```
-
-One other crazy thing: let's say you want to check more often if the external stock price service returned nil
-
-```ruby
-LockAndCache.lock_and_cache('stock_price', {company: 'MSFT', date: '2015-05-05'}, expires: 10, nil_expires: 1) do
+LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10, nil_expires: 1) do
   # get yer stock quote
 end
+```
+
+Clear it with
+
+```ruby
+LockAndCache.clear :stock_price, company: 'MSFT', date: '2015-05-05'
+```
+
+Check locks with
+
+```ruby
+LockAndCache.locked? :stock_price, company: 'MSFT', date: '2015-05-05'
 ```
 
 #### Context mode
 
 "Context mode" simply adds the class name, method name, and context key (the results of `#id` or `#lock_and_cache_key`) of the caller to the cache key.
 
-(This gem evolved from https://github.com/seamusabshere/cache_method, where you always cached a method call...)
-
 ```ruby
 class Stock
   include LockAndCache
 
-  def initialize(ticker_symbol)
+  def initialize(company)
     [...]
   end
 
-  def price(date)
-    lock_and_cache(date, expires: 10) do # <------ see how the cache key depends on the method args?
-      # do the work
+  def stock_price(date)
+    lock_and_cache(date, expires: 10) do
+      # the cache key will be StockQuote (the class) + get (the method name) + id (the instance identifier) + date (the arg you specified)
     end
   end
 
   def lock_and_cache_key # <---------- if you don't define this, it will try to call #id
-    ticker_symbol
+    company
   end
 end
 ```
 
-The key will be `{ StockQuote, :get, $id, $date, }`. In other words, it auto-detects the class, method, context key ... and you add other args if you want.
+The cache key will be StockQuote (the class) + get (the method name) + id (the instance identifier) + date (the arg you specified).
 
-Here's how to clear a cache in context mode:
+In other words, it auto-detects the class, method, context key ... and you add other args if you want.
+
+Clear it with
 
 ```ruby
 blog.lock_and_cache_clear(:get, date)

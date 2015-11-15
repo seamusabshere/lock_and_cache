@@ -314,6 +314,15 @@ describe LockAndCache do
       expect(count).to eq(2)
     end
 
+    it 'allows clearing (complex keys)' do
+      count = 0
+      expect(LockAndCache.lock_and_cache('hello', {world: 1}, expires: 100) { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      LockAndCache.clear('hello', world: 1)
+      expect(LockAndCache.lock_and_cache('hello', {world: 1}, expires: 100) { count += 1 }).to eq(2)
+      expect(count).to eq(2)
+    end
+
     it 'allows multi-part keys' do
       count = 0
       expect(LockAndCache.lock_and_cache(['hello', 1, { target: 'world' }]) { count += 1 }).to eq(1)
