@@ -295,6 +295,16 @@ describe LockAndCache do
       end.to raise_error(/need/)
     end
 
+    it 'allows checking locks' do
+      expect(LockAndCache.locked?(:sleeper)).to be_falsey
+      t = Thread.new do
+        LockAndCache.lock_and_cache(:sleeper) { sleep 1 }
+      end
+      sleep 0.2
+      expect(LockAndCache.locked?(:sleeper)).to be_truthy
+      t.join
+    end
+
     it 'allows clearing' do
       count = 0
       expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)

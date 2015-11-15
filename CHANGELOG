@@ -4,6 +4,7 @@ unreleased
 
   * Increase default heartbeat expires to 32 seconds from 2 (which was too strict IMO)
   * Allow setting heartbeat_expires: globally (LockAndCache.heartbeat_expires=) or per call
+  * Provide LockAndCache.locked?()
 
 2.1.1 / 2015-10-26
 

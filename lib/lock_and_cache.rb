@@ -64,6 +64,14 @@ module LockAndCache
     key.clear
   end
 
+  # Check if a key is locked
+  #
+  # @note Standalone mode. See also "context mode," where you mix LockAndCache into a class and call it from within its methods.
+  def LockAndCache.locked?(*key_parts)
+    key = LockAndCache::Key.new key_parts
+    key.locked?
+  end
+
   # @param seconds [Numeric] Maximum wait time to get a lock
   #
   # @note Can be overridden by putting `max_lock_wait:` in your call to `#lock_and_cache`
