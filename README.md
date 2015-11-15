@@ -39,6 +39,7 @@ We use [`lock_and_cache`](https://github.com/seamusabshere/lock_and_cache) for [
 
   - [Theory](#theory)
   - [Practice](#practice)
+    - [Setup](#setup)
     - [Locking](#locking)
     - [Caching](#caching)
       - [Standalone mode](#standalone-mode)
