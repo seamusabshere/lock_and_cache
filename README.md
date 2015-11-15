@@ -27,9 +27,9 @@ end
 
 ## Sponsor
 
-<p><a href="http://faraday.io"><img src="https://s3.amazonaws.com/photos.angel.co/startups/i/175701-a63ebd1b56a401e905963c64958204d4-medium_jpg.jpg" alt="Faraday logo"/></a></p>
+<p><a href="http://faraday.io"><img src="http://cdn2.hubspot.net/hubfs/515497/img/logo.svg" alt="Faraday logo"/></a></p>
 
-We use [`lock_and_cache`](https://rubygems.org/gems/lock_and_cache) for [big data-driven marketing at Faraday](http://faraday.io).
+We use [`lock_and_cache`](https://github.com/seamusabshere/lock_and_cache) for [data-driven marketing at Faraday](http://faraday.io).
 
 ## TOC
 
