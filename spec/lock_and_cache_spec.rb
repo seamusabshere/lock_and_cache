@@ -95,7 +95,7 @@ class Sleeper
   end
 
   def poke
-    lock_and_cache do
+    lock_and_cache heartbeat_expires: 2 do
       sleep
     end
   end

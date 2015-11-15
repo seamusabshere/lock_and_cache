@@ -16,11 +16,7 @@ require_relative 'lock_and_cache/key'
 module LockAndCache
   DEFAULT_MAX_LOCK_WAIT = 60 * 60 * 24 # 1 day in seconds
 
-  # @private
-  LOCK_HEARTBEAT_EXPIRES = 2
-
-  # @private
-  LOCK_HEARTBEAT_PERIOD = 1
+  DEFAULT_HEARTBEAT_EXPIRES = 32 # 32 seconds
 
   class TimeoutWaitingForLock < StandardError; end
 
@@ -78,6 +74,20 @@ module LockAndCache
   # @private
   def LockAndCache.max_lock_wait
     @max_lock_wait || DEFAULT_MAX_LOCK_WAIT
+  end
+
+  # @param seconds [Numeric] How often a process has to heartbeat in order to keep a lock
+  #
+  # @note Can be overridden by putting `heartbeat_expires:` in your call to `#lock_and_cache`
+  def LockAndCache.heartbeat_expires=(seconds)
+    memo = seconds.to_f
+    raise "heartbeat_expires must be greater than 2 seconds" unless memo >= 2
+    @heartbeat_expires = memo
+  end
+
+  # @private
+  def LockAndCache.heartbeat_expires
+    @heartbeat_expires || DEFAULT_HEARTBEAT_EXPIRES
   end
 
   # @private

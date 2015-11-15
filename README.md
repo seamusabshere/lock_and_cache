@@ -59,7 +59,7 @@ As you can see, most caching libraries only take care of (1) and (4).
 
 Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).
 
-Above and beyond Redlock, a 2-second heartbeat is used that will clear the lock if a process is killed. This is implemented using lock extensions.
+Above and beyond Redlock, a 32-second heartbeat is used that will clear the lock if a process is killed. This is implemented using lock extensions.
 
 ```ruby
 LockAndCache.storage = Redis.new

@@ -35,6 +35,9 @@ module LockAndCache
     def perform
       debug = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true')
       max_lock_wait = options.fetch 'max_lock_wait', LockAndCache.max_lock_wait
+      heartbeat_expires = options.fetch('heartbeat_expires', LockAndCache.heartbeat_expires).to_f.ceil
+      raise "heartbeat_expires must be >= 2 seconds" unless heartbeat_expires >= 2
+      heartbeat_frequency = (heartbeat_expires / 2).ceil
       Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
       if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
         return ::Marshal.load(existing)
@@ -45,7 +48,7 @@ module LockAndCache
       lock_info = nil
       begin
         Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
-          until lock_info = lock_manager.lock(lock_digest, LockAndCache::LOCK_HEARTBEAT_EXPIRES*1000)
+          until lock_info = lock_manager.lock(lock_digest, heartbeat_expires*1000)
             Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
             sleep rand
           end
@@ -63,10 +66,10 @@ module LockAndCache
               loop do
                 Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
                 break if done
-                sleep LockAndCache::LOCK_HEARTBEAT_PERIOD
+                sleep heartbeat_frequency
                 break if done
                 Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
-                lock_manager.lock lock_digest, LockAndCache::LOCK_HEARTBEAT_EXPIRES*1000, extend: lock_info
+                lock_manager.lock lock_digest, heartbeat_expires*1000, extend: lock_info
               end
             end
             retval = blk.call
