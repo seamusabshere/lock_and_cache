@@ -10,9 +10,9 @@ require_relative 'lock_and_cache/version'
 require_relative 'lock_and_cache/action'
 require_relative 'lock_and_cache/key'
 
-# Lock and cache methods using redis!
+# Lock and cache using redis!
 #
-# I bet you're caching, but are you locking?
+# Most caching libraries don't do locking, meaning that >1 process can be calculating a cached value at the same time. Since you presumably cache things because they cost CPU, database reads, or money, doesn't it make sense to lock while caching?
 module LockAndCache
   DEFAULT_MAX_LOCK_WAIT = 60 * 60 * 24 # 1 day in seconds
 
