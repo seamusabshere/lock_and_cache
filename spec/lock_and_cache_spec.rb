@@ -287,6 +287,16 @@ describe LockAndCache do
       expect(count).to eq(2)
     end
 
+    it 'can be nested' do
+      expect(LockAndCache.lock_and_cache('hello') do
+        LockAndCache.lock_and_cache('world') do
+          LockAndCache.lock_and_cache('privyet') do
+            123
+          end
+        end
+      end).to eq(123)
+    end
+
     it "requires a key" do
       expect do
         LockAndCache.lock_and_cache do
