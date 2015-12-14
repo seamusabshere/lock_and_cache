@@ -15,7 +15,7 @@ module LockAndCache
       #
       # Get a context object's class name, which is its own name if it's an object.
       def extract_class_name(context)
-        (self.class == ::Class) ? self.name : self.class.name
+        (context.class == ::Class) ? context.name : context.class.name
       end
     end
 
