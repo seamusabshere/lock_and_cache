@@ -13,11 +13,13 @@ module LockAndCache
     end
 
     def expires
-      options['expires']
+      return @expires if defined?(@expires)
+      @expires = options.has_key?('expires') ? options['expires'].to_f.round : nil
     end
 
     def nil_expires
-      options['nil_expires']
+      return @nil_expires if defined?(@nil_expires)
+      @nil_expires = options.has_key?('nil_expires') ? options['nil_expires'].to_f.round : nil
     end
 
     def digest

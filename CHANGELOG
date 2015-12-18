@@ -1,3 +1,9 @@
+2.2.2 / 2015-12-18
+
+* Bug fixes
+
+  * Don't die if you pass a non-integer expires - round it
+
 2.2.1 / 2015-12-14
 
 * Bug fixes

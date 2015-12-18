@@ -287,6 +287,10 @@ describe LockAndCache do
       expect(count).to eq(2)
     end
 
+    it "allows float expiry" do
+      expect{LockAndCache.lock_and_cache('hello', expires: 1.5) {}}.not_to raise_error
+    end
+
     it 'can be nested' do
       expect(LockAndCache.lock_and_cache('hello') do
         LockAndCache.lock_and_cache('world') do
