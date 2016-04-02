@@ -17,21 +17,38 @@ module LockAndCache
       def extract_class_name(context)
         (context.class == ::Class) ? context.name : context.class.name
       end
+
+      # @private
+      #
+      # Extract id from context. Calls #lock_and_cache_key if available, otherwise #id
+      def extract_context_id(context)
+        if context.class == ::Class
+          nil
+        elsif context.respond_to?(:lock_and_cache_key)
+          context.lock_and_cache_key
+        elsif context.respond_to?(:id)
+          context.id
+        else
+          raise "#{context} must respond to #lock_and_cache_key or #id"
+        end
+      end
     end
 
     METHOD_NAME_IN_CALLER = /in `([^']+)'/
 
+    attr_reader :context
     attr_reader :method_id
-    attr_reader :class_name
 
     def initialize(parts, options = {})
       @_parts = parts
+      @context = options[:context]
       @method_id = if options.has_key?(:method_id)
         options[:method_id]
       elsif options.has_key?(:caller)
         Key.extract_method_id_from_caller options[:caller]
+      elsif context
+        raise "supposed to call context with method_id or caller"
       end
-      @class_name = Key.extract_class_name options[:context] if options.has_key?(:context)
     end
 
     # A (non-cryptographic) digest of the key parts for use as the cache key
@@ -46,8 +63,8 @@ module LockAndCache
 
     # A human-readable representation of the key parts
     def key
-      @key ||= if method_id
-        [class_name, method_id, parts]
+      @key ||= if context
+        [class_name, context_id, method_id, parts].compact
       else
         parts
       end
@@ -65,6 +82,14 @@ module LockAndCache
     end
 
     alias debug key
+
+    def context_id
+      @context_id ||= Key.extract_context_id context
+    end
+
+    def class_name
+      @class_name ||= Key.extract_class_name context
+    end
 
     # An array of the parts we use for the key
     def parts

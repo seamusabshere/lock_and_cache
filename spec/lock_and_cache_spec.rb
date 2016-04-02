@@ -17,6 +17,12 @@ class Foo
     end
   end
 
+  def cached_rand
+    lock_and_cache do
+      rand
+    end
+  end
+
   def click_null
     lock_and_cache do
       nil
@@ -45,6 +51,32 @@ class Foo
 
   def lock_and_cache_key
     @id
+  end
+end
+
+class FooId
+  include LockAndCache
+  def click
+    lock_and_cache do
+      nil
+    end
+  end
+  def id
+    @id ||= rand
+  end
+end
+
+class FooClass
+  class << self
+    include LockAndCache
+    def click
+      lock_and_cache do
+        nil
+      end
+    end
+    def id
+      raise "called id"
+    end
   end
 end
 
@@ -152,6 +184,34 @@ describe LockAndCache do
       expect(foo.click_last_hash_as_options).to eq(3)
     end
 
+    it "calls #lock_and_cache_key" do
+      expect(foo).to receive(:lock_and_cache_key)
+      foo.click
+    end
+
+    it "calls #lock_and_cache_key to differentiate" do
+      a = Foo.new 1
+      b = Foo.new 2
+      expect(a.cached_rand).not_to eq(b.cached_rand)
+    end
+  end
+
+  describe 'self-identification in context mode' do
+    it "calls #id for non-class" do
+      foo_id = FooId.new
+      expect(foo_id).to receive(:id)
+      foo_id.click
+    end
+    it "calls class name for non-class" do
+      foo_id = FooId.new
+      expect(FooId).to receive(:name)
+      foo_id.click
+    end
+    it "uses class name for class" do
+      expect(FooClass).to receive(:name)
+      expect(FooClass).not_to receive(:id)
+      FooClass.click
+    end
   end
 
   describe "locking" do

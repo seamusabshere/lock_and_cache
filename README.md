@@ -215,6 +215,7 @@ You can expire nil values with a different timeout (`nil_expires`) than other va
 ## Wishlist
 
 * Convert most tests to use standalone mode, which is easier to understand
+* Make explicit Key unit tests
 * Check options
 * Lengthen heartbeat so it's not so sensitive
 * Clarify which options are seconds or milliseconds

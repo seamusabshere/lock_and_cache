@@ -1,3 +1,9 @@
+3.0.0 / 2016-04-02
+
+* Breaking changes
+
+  * In context mode (when you `include LockAndCache`), really call #lock_and_cache_key or #id on the instance
+
 2.2.2 / 2015-12-18
 
 * Bug fixes
