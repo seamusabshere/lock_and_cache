@@ -40,37 +40,37 @@ module LockAndCache
       heartbeat_expires = options.fetch('heartbeat_expires', LockAndCache.heartbeat_expires).to_f.ceil
       raise "heartbeat_expires must be >= 2 seconds" unless heartbeat_expires >= 2
       heartbeat_frequency = (heartbeat_expires / 2).ceil
-      Thread.exclusive { $stderr.puts "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+      LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
       if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
         return ::Marshal.load(existing)
       end
-      Thread.exclusive { $stderr.puts "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+      LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
       retval = nil
       lock_manager = LockAndCache.lock_manager
       lock_info = nil
       begin
         Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
           until lock_info = lock_manager.lock(lock_digest, heartbeat_expires*1000)
-            Thread.exclusive { $stderr.puts "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+            LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
             sleep rand
           end
         end
-        Thread.exclusive { $stderr.puts "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+        LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
         if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
-          Thread.exclusive { $stderr.puts "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+          LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
           retval = ::Marshal.load existing
         end
         unless retval
-          Thread.exclusive { $stderr.puts "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+          LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
           done = false
           begin
             lock_extender = Thread.new do
               loop do
-                Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+                LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] heartbeat1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
                 break if done
                 sleep heartbeat_frequency
                 break if done
-                Thread.exclusive { $stderr.puts "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
+                LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if debug
                 lock_manager.lock lock_digest, heartbeat_expires*1000, extend: lock_info
               end
             end

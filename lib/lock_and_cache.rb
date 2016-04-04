@@ -18,6 +18,8 @@ module LockAndCache
 
   DEFAULT_HEARTBEAT_EXPIRES = 32 # 32 seconds
 
+  LOG_MUTEX = Mutex.new
+
   class TimeoutWaitingForLock < StandardError; end
 
   # @param redis_connection [Redis] A redis connection to be used for lock and cached value storage
