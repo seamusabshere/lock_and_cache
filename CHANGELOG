@@ -1,3 +1,9 @@
+4.0.4 / 2016-04-11
+
+* Bug fixes
+
+  * Don't default to debug logging
+
 4.0.3 / 2016-04-11
 
 * Bug fixes

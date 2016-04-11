@@ -150,5 +150,5 @@ module LockAndCache
 end
 
 logger = Logger.new $stderr
-logger.level = Logger::DEBUG if ENV['LOCK_AND_CACHE_DEBUG'] == 'true'
+logger.level = (ENV['LOCK_AND_CACHE_DEBUG'] == 'true') ? Logger::DEBUG : Logger::INFO
 LockAndCache.logger = logger
