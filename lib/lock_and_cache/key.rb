@@ -20,16 +20,18 @@ module LockAndCache
 
       # @private
       #
-      # Extract id from context. Calls #lock_and_cache_key if available, otherwise #id
-      def extract_context_id(context)
-        if context.class == ::Class
-          nil
-        elsif context.respond_to?(:lock_and_cache_key)
-          context.lock_and_cache_key
-        elsif context.respond_to?(:id)
-          context.id
+      # Recursively extract id from obj. Calls #lock_and_cache_key if available, otherwise #id
+      def extract_obj_id(obj)
+        if obj.is_a?(::String) or obj.is_a?(::Symbol) or obj.is_a?(::Numeric)
+          obj
+        elsif obj.respond_to?(:lock_and_cache_key)
+          obj.lock_and_cache_key
+        elsif obj.respond_to?(:id)
+          obj.id
+        elsif obj.respond_to?(:map)
+          obj.map { |objj| extract_obj_id objj }
         else
-          raise "#{context} must respond to #lock_and_cache_key or #id"
+          raise "#{obj.inspect} must respond to #lock_and_cache_key or #id"
         end
       end
     end
@@ -84,7 +86,12 @@ module LockAndCache
     alias debug key
 
     def context_id
-      @context_id ||= Key.extract_context_id context
+      return @context_id if defined?(@context_id)
+      @context_id = if context.class == ::Class
+        nil
+      else
+        Key.extract_obj_id context
+      end
     end
 
     def class_name
@@ -93,14 +100,7 @@ module LockAndCache
 
     # An array of the parts we use for the key
     def parts
-      @parts ||= @_parts.map do |v|
-        case v
-        when ::String, ::Symbol, ::Hash, ::Array
-          v
-        else
-          v.respond_to?(:lock_and_cache_key) ? v.lock_and_cache_key : v.id
-        end
-      end
+      @parts ||= Key.extract_obj_id @_parts
     end
   end
 end
