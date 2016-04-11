@@ -212,10 +212,13 @@ You can expire nil values with a different timeout (`nil_expires`) than other va
 * [redis](https://github.com/redis/redis-rb)
 * [redlock](https://github.com/leandromoreira/redlock-rb)
 
+## Known issues
+
+* In cache keys, can't distinguish {a: 1} from [[:a, 1]]
+
 ## Wishlist
 
 * Convert most tests to use standalone mode, which is easier to understand
-* Make explicit Key unit tests
 * Check options
 * Lengthen heartbeat so it's not so sensitive
 * Clarify which options are seconds or milliseconds

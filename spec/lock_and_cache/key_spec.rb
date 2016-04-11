@@ -12,6 +12,10 @@ class KeyTestLockAndCacheKey
 end
 describe LockAndCache::Key do
   describe 'parts' do
+    it "has a known issue differentiating between {a: 1} and [[:a, 1]]" do
+      expect(described_class.new(a: 1).send(:parts)).to eq(described_class.new([[:a, 1]]).send(:parts))
+    end
+    
     {
       [1]                                                => [1],
       ["you"]                                            => ['you'],
