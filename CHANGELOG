@@ -1,3 +1,9 @@
+4.0.3 / 2016-04-11
+
+* Bug fixes
+
+  * Allow true or false in keys
+
 4.0.2 / 2016-04-11
 
 * Bug fixes
