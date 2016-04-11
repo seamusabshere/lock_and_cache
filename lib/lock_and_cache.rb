@@ -1,3 +1,4 @@
+require 'logger'
 require 'timeout'
 require 'digest/sha1'
 require 'base64'
@@ -18,8 +19,6 @@ module LockAndCache
 
   DEFAULT_HEARTBEAT_EXPIRES = 32 # 32 seconds
 
-  LOG_MUTEX = Mutex.new
-
   class TimeoutWaitingForLock < StandardError; end
 
   # @param redis_connection [Redis] A redis connection to be used for lock and cached value storage
@@ -32,6 +31,16 @@ module LockAndCache
   # @return [Redis] The redis connection used for lock and cached value storage
   def LockAndCache.storage
     @storage
+  end
+
+  # @param logger [Logger] A logger.
+  def LockAndCache.logger=(logger)
+    @logger = logger
+  end
+
+  # @return [Logger] The logger.
+  def LockAndCache.logger
+    @logger
   end
 
   # Flush LockAndCache's storage.
@@ -139,3 +148,7 @@ module LockAndCache
     action.perform
   end
 end
+
+logger = Logger.new $stderr
+logger.level = Logger::DEBUG if ENV['LOCK_AND_CACHE_DEBUG'] == 'true'
+LockAndCache.logger = logger

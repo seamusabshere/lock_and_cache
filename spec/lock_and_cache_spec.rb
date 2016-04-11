@@ -88,10 +88,11 @@ class Bar
   def initialize(id)
     @id = id
     @count = 0
+    @mutex = Mutex.new
   end
 
   def unsafe_click
-    LockAndCache::LOG_MUTEX.synchronize do
+    @mutex.synchronize do
       # puts "clicking bar #{@id} - #{$clicking.to_a} - #{$clicking.include?(@id)} - #{@id == $clicking.to_a[0]}"
       raise "somebody already clicking Bar #{@id}" if $clicking.include?(@id)
       $clicking << @id

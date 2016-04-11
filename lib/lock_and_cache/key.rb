@@ -77,7 +77,7 @@ module LockAndCache
     end
 
     def clear
-      LockAndCache::LOG_MUTEX.synchronize { $stderr.puts "[lock_and_cache] clear #{debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" } if ENV['LOCK_AND_CACHE_DEBUG'] == 'true'
+      LockAndCache.logger.debug { "[lock_and_cache] clear #{debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
       storage = LockAndCache.storage
       storage.del digest
       storage.del lock_digest
