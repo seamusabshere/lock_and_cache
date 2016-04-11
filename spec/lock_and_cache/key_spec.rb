@@ -10,6 +10,11 @@ class KeyTestLockAndCacheKey
     'lock_and_cache_key'
   end
 end
+class KeyTest1
+  def lock_and_cache_key
+    KeyTestLockAndCacheKey.new
+  end
+end
 describe LockAndCache::Key do
   describe 'parts' do
     it "has a known issue differentiating between {a: 1} and [[:a, 1]]" do
@@ -39,6 +44,8 @@ describe LockAndCache::Key do
       [[{ a: [ KeyTestLockAndCacheKey.new ] }]]          => [[[[:a, ["lock_and_cache_key"]]]]],
       [[{ a: { b: KeyTestLockAndCacheKey.new } }]]       => [[ [[ :a, [[:b, "lock_and_cache_key"]] ]] ]],
       [[{ a: { b: [ KeyTestLockAndCacheKey.new ] } }]]   => [[ [[ :a, [[:b, ["lock_and_cache_key"]]] ]] ]],
+
+      [[{ a: { b: [ KeyTest1.new ] } }]]   => [[ [[ :a, [[:b, ["lock_and_cache_key"]]] ]] ]],
     }.each do |i, o|
       it "turns #{i} into #{o}" do
         expect(described_class.new(i).send(:parts)).to eq(o)

@@ -25,9 +25,9 @@ module LockAndCache
         if obj.is_a?(::String) or obj.is_a?(::Symbol) or obj.is_a?(::Numeric)
           obj
         elsif obj.respond_to?(:lock_and_cache_key)
-          obj.lock_and_cache_key
+          extract_obj_id obj.lock_and_cache_key
         elsif obj.respond_to?(:id)
-          obj.id
+          extract_obj_id obj.id
         elsif obj.respond_to?(:map)
           obj.map { |objj| extract_obj_id objj }
         else

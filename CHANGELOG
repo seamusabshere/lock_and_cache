@@ -1,3 +1,9 @@
+4.0.2 / 2016-04-11
+
+* Bug fixes
+
+  * When generating key, recurse into #lock_and_cache_key
+
 4.0.1 / 2016-04-11
 
 * Bug fixes
