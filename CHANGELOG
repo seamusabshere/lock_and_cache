@@ -1,7 +1,8 @@
-unreleased
+4.0.5 / 2017-04-01
 
 * Enhancements
 
+  * allow dates and times in keys
   * Test on ruby 2.3.0 and 2.4.1
   * 2x faster key generation
 

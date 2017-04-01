@@ -1,3 +1,5 @@
+require 'date'
+
 module LockAndCache
   # @private
   class Key
@@ -25,6 +27,8 @@ module LockAndCache
         klass = obj.class
         if ALLOWED_IN_KEYS.include?(klass)
           obj
+        elsif DATE.include?(klass)
+          obj.to_s
         elsif obj.respond_to?(:lock_and_cache_key)
           extract_obj_id obj.lock_and_cache_key
         elsif obj.respond_to?(:id)
@@ -52,6 +56,11 @@ module LockAndCache
       ALLOWED_IN_KEYS << ::Fixnum
       ALLOWED_IN_KEYS << ::Bignum  
     end
+    DATE = [
+      ::Date,
+      ::DateTime,
+      ::Time,
+    ].to_set
     METHOD_NAME_IN_CALLER = /in `([^']+)'/
 
     attr_reader :context

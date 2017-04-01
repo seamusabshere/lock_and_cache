@@ -21,13 +21,23 @@ describe LockAndCache::Key do
       expect(described_class.new(a: 1).send(:parts)).to eq(described_class.new([[:a, 1]]).send(:parts))
     end
     
+    now = Time.now
+    today = Date.today
     {
       [1]                                                => [1],
-      ["you"]                                            => ['you'],
-      [["you"]]                                          => [['you']],
-      [["you"], "person"]                                => [["you"], "person"],
-      [["you"], {:silly=>:person}]                       => [["you"], [[:silly, :person]] ],
-      { hi: 'you' }                                      => [[:hi, "you"]],
+      ['you']                                            => ['you'],
+      [['you']]                                          => [['you']],
+      [['you'], "person"]                                => [['you'], "person"],
+      [['you'], {:silly=>:person}]                       => [['you'], [[:silly, :person]] ],
+      [now]                                              => [now.to_s],
+      [[now]]                                            => [[now.to_s]],
+      [today]                                            => [today.to_s],
+      [[today]]                                          => [[today.to_s]],
+      { hi: 'you' }                                      => [[:hi, 'you']],
+      { hi: 123 }                                        => [[:hi, 123]],
+      { hi: 123.0 }                                      => [[:hi, 123.0]],
+      { hi: now }                                        => [[:hi, now.to_s]],
+      { hi: today }                                      => [[:hi, today.to_s]],
       [KeyTestId.new]                                    => ['id'],
       [[KeyTestId.new]]                                  => [['id']],
       { a: KeyTestId.new }                               => [[:a, "id"]],
