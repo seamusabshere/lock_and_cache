@@ -1,3 +1,9 @@
+unreleased
+
+* ?
+
+  * Don't test on ruby 2.1
+
 4.0.5 / 2017-04-01
 
 * Enhancements
