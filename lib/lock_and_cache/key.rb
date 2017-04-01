@@ -22,7 +22,8 @@ module LockAndCache
       #
       # Recursively extract id from obj. Calls #lock_and_cache_key if available, otherwise #id
       def extract_obj_id(obj)
-        if ALLOWED_IN_KEYS.any? { |k| obj.is_a?(k) }
+        klass = obj.class
+        if ALLOWED_IN_KEYS.include?(klass)
           obj
         elsif obj.respond_to?(:lock_and_cache_key)
           extract_obj_id obj.lock_and_cache_key
@@ -43,7 +44,14 @@ module LockAndCache
       ::TrueClass,
       ::FalseClass,
       ::NilClass,
-    ]
+      ::Integer,
+      ::Float,
+    ].to_set
+    parts = ::RUBY_VERSION.split('.').map(&:to_i)
+    unless parts[0] >= 2 and parts[1] >= 4
+      ALLOWED_IN_KEYS << ::Fixnum
+      ALLOWED_IN_KEYS << ::Bignum  
+    end
     METHOD_NAME_IN_CALLER = /in `([^']+)'/
 
     attr_reader :context
