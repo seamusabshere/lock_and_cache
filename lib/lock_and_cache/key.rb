@@ -101,6 +101,10 @@ module LockAndCache
       LockAndCache.storage.exists lock_digest
     end
 
+    def cached?
+      LockAndCache.storage.exists digest
+    end
+
     def clear
       LockAndCache.logger.debug { "[lock_and_cache] clear #{debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
       storage = LockAndCache.storage

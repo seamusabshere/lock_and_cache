@@ -337,6 +337,12 @@ describe LockAndCache do
       expect(count).to eq(1)
     end
 
+    it "can be queried for cached?" do
+      expect(LockAndCache.cached?('hello')).to be_falsy
+      LockAndCache.lock_and_cache('hello') { nil }
+      expect(LockAndCache.cached?('hello')).to be_truthy
+    end
+
     it 'allows expiry' do
       count = 0
       expect(LockAndCache.lock_and_cache('hello', expires: 1) { count += 1 }).to eq(1)

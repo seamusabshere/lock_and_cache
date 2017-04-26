@@ -1,8 +1,12 @@
-unreleased
+4.0.6
 
 * ?
 
   * Don't test on ruby 2.1
+
+* Enhancements
+
+  * LockAndCache.cached?(*key_parts) to check if a value is cached
 
 4.0.5 / 2017-04-01
 
