@@ -29,7 +29,7 @@ end
 
 <p><a href="https://www.faraday.io"><img src="https://s3.amazonaws.com/faraday-assets/files/img/logo.svg" alt="Faraday logo"/></a></p>
 
-We use [`lock_and_cache`](https://github.com/seamusabshere/lock_and_cache) for [B2C customer intelligence at Faraday](http://faraday.io).
+We use [`lock_and_cache`](https://github.com/seamusabshere/lock_and_cache) for [B2C customer intelligence at Faraday](https://www.faraday.io).
 
 ## TOC
 
