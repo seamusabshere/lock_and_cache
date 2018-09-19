@@ -2,7 +2,6 @@
 
 [![Build Status](https://travis-ci.org/seamusabshere/lock_and_cache.svg?branch=master&v=2.2.0)](https://travis-ci.org/seamusabshere/lock_and_cache)
 [![Code Climate](https://codeclimate.com/github/seamusabshere/lock_and_cache/badges/gpa.svg?v=2.2.0)](https://codeclimate.com/github/seamusabshere/lock_and_cache)
-[![Dependency Status](https://gemnasium.com/seamusabshere/lock_and_cache.svg?v=2.2.0)](https://gemnasium.com/seamusabshere/lock_and_cache)
 [![Gem Version](https://badge.fury.io/rb/lock_and_cache.svg?v=2.2.0)](http://badge.fury.io/rb/lock_and_cache)
 [![Security](https://hakiri.io/github/seamusabshere/lock_and_cache/master.svg?v=2.2.0)](https://hakiri.io/github/seamusabshere/lock_and_cache/master)
 [![Inline docs](http://inch-ci.org/github/seamusabshere/lock_and_cache.svg?branch=master&v=2.2.0)](http://inch-ci.org/github/seamusabshere/lock_and_cache)
