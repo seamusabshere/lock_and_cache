@@ -1,3 +1,3 @@
 module LockAndCache
-  VERSION = '4.0.6'
+  VERSION = '5.0.0'
 end
