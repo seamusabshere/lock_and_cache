@@ -45,14 +45,15 @@ module LockAndCache
       end
       LockAndCache.logger.debug { "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
       retval = nil
-      lock_manager = LockAndCache.lock_manager
-      lock_info = nil
+      lock_secret = SecureRandom.hex 16
+      acquired = false
       begin
         Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
-          until lock_info = lock_manager.lock(lock_digest, heartbeat_expires*1000)
+          until storage.set(lock_digest, lock_secret, nx: true, ex: heartbeat_expires)
             LockAndCache.logger.debug { "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
             sleep rand
           end
+          acquired = true
         end
         LockAndCache.logger.debug { "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
         if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
@@ -70,7 +71,9 @@ module LockAndCache
                 sleep heartbeat_frequency
                 break if done
                 LockAndCache.logger.debug { "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-                lock_manager.lock lock_digest, heartbeat_expires*1000, extend: lock_info
+                # FIXME use lua to check the value
+                raise "unexpectedly lost lock for #{key.debug}" unless storage.get(lock_digest) == lock_secret
+                storage.set lock_digest, lock_secret, xx: true, ex: heartbeat_expires
               end
             end
             retval = blk.call
@@ -81,7 +84,7 @@ module LockAndCache
           end
         end
       ensure
-        lock_manager.unlock lock_info if lock_info
+        storage.del lock_digest if acquired
       end
       retval
     end

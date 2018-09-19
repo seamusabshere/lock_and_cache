@@ -3,7 +3,6 @@ require 'timeout'
 require 'digest/sha1'
 require 'base64'
 require 'redis'
-require 'redlock'
 require 'active_support'
 require 'active_support/core_ext'
 
@@ -25,7 +24,6 @@ module LockAndCache
   def LockAndCache.storage=(redis_connection)
     raise "only redis for now" unless redis_connection.class.to_s == 'Redis'
     @storage = redis_connection
-    @lock_manager = Redlock::Client.new [redis_connection], retry_count: 1
   end
 
   # @return [Redis] The redis connection used for lock and cached value storage
@@ -115,11 +113,6 @@ module LockAndCache
   # @private
   def LockAndCache.heartbeat_expires
     @heartbeat_expires || DEFAULT_HEARTBEAT_EXPIRES
-  end
-
-  # @private
-  def LockAndCache.lock_manager
-    @lock_manager
   end
 
   # Check if a method is locked on an object.

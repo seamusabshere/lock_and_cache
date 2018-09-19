@@ -82,9 +82,9 @@ It will use this redis for both locking and storing cached values.
 
 ### Locking
 
-Based on [antirez's Redlock algorithm](http://redis.io/topics/distlock).
+Just uses Redis naive locking with NX.
 
-Above and beyond Redlock, a 32-second heartbeat is used that will clear the lock if a process is killed. This is implemented using lock extensions.
+A 32-second heartbeat is used that will clear the lock if a process is killed.
 
 ### Caching
 
@@ -189,7 +189,7 @@ Most caching libraries don't do locking, meaning that >1 process can be calculat
 
 ### Heartbeat
 
-If the process holding the lock dies, we automatically remove the lock so somebody else can do it (using heartbeats and redlock extends).
+If the process holding the lock dies, we automatically remove the lock so somebody else can do it (using heartbeats).
 
 ### Context mode
 
@@ -210,7 +210,6 @@ You can expire nil values with a different timeout (`nil_expires`) than other va
 
 * [activesupport](https://rubygems.org/gems/activesupport) (come on, it's the bomb)
 * [redis](https://github.com/redis/redis-rb)
-* [redlock](https://github.com/leandromoreira/redlock-rb)
 
 ## Known issues
 
