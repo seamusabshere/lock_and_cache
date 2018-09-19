@@ -70,6 +70,8 @@ We use [`lock_and_cache`](https://github.com/seamusabshere/lock_and_cache) for [
 
 As you can see, most caching libraries only take care of (1) and (4) (well, and (5) of course).
 
+If an error is raised during calculation, that error is propagated to all waiters for 1 second.
+
 ## Practice
 
 ### Setup

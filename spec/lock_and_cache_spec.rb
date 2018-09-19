@@ -337,6 +337,28 @@ describe LockAndCache do
       expect(count).to eq(1)
     end
 
+    it 'really caches' do
+      expect(LockAndCache.lock_and_cache('hello') { :red }).to eq(:red)
+      expect(LockAndCache.lock_and_cache('hello') { raise(Exception.new("stop")) }).to eq(:red)
+    end
+
+    it 'caches errors (briefly)' do
+      count = 0
+      expect {
+        LockAndCache.lock_and_cache('hello') { count += 1; raise("stop") }
+      }.to raise_error(/stop/)
+      expect(count).to eq(1)
+      expect {
+        LockAndCache.lock_and_cache('hello') { count += 1; raise("no no not me") }
+      }.to raise_error(/LockAndCache.*stop/)
+      expect(count).to eq(1)
+      sleep 1
+      expect {
+        LockAndCache.lock_and_cache('hello') { count += 1; raise("retrying") }
+      }.to raise_error(/retrying/)
+      expect(count).to eq(2)
+    end
+
     it "can be queried for cached?" do
       expect(LockAndCache.cached?('hello')).to be_falsy
       LockAndCache.lock_and_cache('hello') { nil }

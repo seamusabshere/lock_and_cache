@@ -1,6 +1,8 @@
 module LockAndCache
   # @private
   class Action
+    ERROR_MAGIC_KEY = :lock_and_cache_error
+
     attr_reader :key
     attr_reader :options
     attr_reader :blk
@@ -34,6 +36,15 @@ module LockAndCache
       @storage ||= LockAndCache.storage or raise("must set LockAndCache.storage=[Redis]")
     end
 
+    def load_existing(existing)
+      v = ::Marshal.load(existing)
+      if v.is_a?(::Hash) and (founderr = v[ERROR_MAGIC_KEY])
+        raise "Another LockAndCache process raised #{founderr}"
+      else
+        v
+      end
+    end
+
     def perform
       max_lock_wait = options.fetch 'max_lock_wait', LockAndCache.max_lock_wait
       heartbeat_expires = options.fetch('heartbeat_expires', LockAndCache.heartbeat_expires).to_f.ceil
@@ -41,7 +52,7 @@ module LockAndCache
       heartbeat_frequency = (heartbeat_expires / 2).ceil
       LockAndCache.logger.debug { "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
       if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
-        return ::Marshal.load(existing)
+        return load_existing(existing)
       end
       LockAndCache.logger.debug { "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
       retval = nil
@@ -58,7 +69,7 @@ module LockAndCache
         LockAndCache.logger.debug { "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
         if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
           LockAndCache.logger.debug { "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-          retval = ::Marshal.load existing
+          retval = load_existing existing
         end
         unless retval
           LockAndCache.logger.debug { "[lock_and_cache] F1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
@@ -76,8 +87,13 @@ module LockAndCache
                 storage.set lock_digest, lock_secret, xx: true, ex: heartbeat_expires
               end
             end
-            retval = blk.call
-            retval.nil? ? set_nil : set_non_nil(retval)
+            begin
+              retval = blk.call
+              retval.nil? ? set_nil : set_non_nil(retval)
+            rescue
+              set_error $!
+              raise
+            end
           ensure
             done = true
             lock_extender.join if lock_extender.status.nil?
@@ -87,6 +103,10 @@ module LockAndCache
         storage.del lock_digest if acquired
       end
       retval
+    end
+
+    def set_error(exception)
+      storage.set digest, ::Marshal.dump(ERROR_MAGIC_KEY => exception.message), ex: 1
     end
 
     NIL = Marshal.dump nil

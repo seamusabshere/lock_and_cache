@@ -2,6 +2,7 @@ unreleased
 
 * Enhancements / breaking changes
 
+  * Propagate errors to all waiters up to 1 second after the error
   * Stop using redlock, just use plain single-node Redis locking
 
 4.0.6
