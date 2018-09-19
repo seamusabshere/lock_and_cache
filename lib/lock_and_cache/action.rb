@@ -92,9 +92,9 @@ module LockAndCache
     NIL = Marshal.dump nil
     def set_nil
       if nil_expires
-        storage.setex digest, nil_expires, NIL
+        storage.set digest, NIL, ex: nil_expires
       elsif expires
-        storage.setex digest, expires, NIL
+        storage.set digest, NIL, ex: expires
       else
         storage.set digest, NIL
       end
@@ -103,7 +103,7 @@ module LockAndCache
     def set_non_nil(retval)
       raise "expected not null #{retval.inspect}" if retval.nil?
       if expires
-        storage.setex digest, expires, ::Marshal.dump(retval)
+        storage.set digest, ::Marshal.dump(retval), ex: expires
       else
         storage.set digest, ::Marshal.dump(retval)
       end
