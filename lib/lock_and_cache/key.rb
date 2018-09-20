@@ -98,18 +98,17 @@ module LockAndCache
     end
 
     def locked?
-      LockAndCache.storage.exists lock_digest
+      LockAndCache.lock_storage.exists lock_digest
     end
 
     def cached?
-      LockAndCache.storage.exists digest
+      LockAndCache.cache_storage.exists digest
     end
 
     def clear
       LockAndCache.logger.debug { "[lock_and_cache] clear #{debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-      storage = LockAndCache.storage
-      storage.del digest
-      storage.del lock_digest
+      LockAndCache.cache_storage.del digest
+      LockAndCache.lock_storage.del lock_digest
     end
 
     alias debug key

@@ -13,7 +13,8 @@ Most caching libraries don't do locking, meaning that >1 process can be calculat
 ## Quickstart
 
 ```ruby
-LockAndCache.storage = Redis.new
+LockAndCache.lock_storage = Redis.new db: 3
+LockAndCache.cache_storage = Redis.new db: 4
 
 LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10, nil_expires: 1) do
   # get yer stock quote
@@ -76,7 +77,8 @@ If an error is raised during calculation, that error is propagated to all waiter
 ### Setup
 
 ```ruby
-LockAndCache.storage = Redis.new
+LockAndCache.lock_storage = Redis.new db: 3
+LockAndCache.cache_storage = Redis.new db: 4
 ```
 
 It will use this redis for both locking and storing cached values.
@@ -204,7 +206,8 @@ You can expire nil values with a different timeout (`nil_expires`) than other va
 
 ## Tunables
 
-* `LockAndCache.storage=[redis]`
+* `LockAndCache.lock_storage=[redis]`
+* `LockAndCache.cache_storage=[redis]`
 * `ENV['LOCK_AND_CACHE_DEBUG']='true'` if you want some debugging output on `$stderr`
 
 ## Few dependencies

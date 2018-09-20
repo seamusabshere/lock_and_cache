@@ -140,7 +140,8 @@ end
 
 describe LockAndCache do
   before do
-    LockAndCache.flush
+    LockAndCache.flush_locks
+    LockAndCache.flush_cache
   end
 
   it 'has a version number' do

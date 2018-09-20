@@ -1,3 +1,9 @@
+6.0.0
+
+* Breaking changes
+
+  * Set lock_storage and cache_storage separately
+
 5.0.0
 
 * Enhancements / breaking changes

@@ -32,8 +32,12 @@ module LockAndCache
       @lock_digest ||= key.lock_digest
     end
 
-    def storage
-      @storage ||= LockAndCache.storage or raise("must set LockAndCache.storage=[Redis]")
+    def lock_storage
+      @lock_storage ||= LockAndCache.lock_storage or raise("must set LockAndCache.lock_storage=[Redis]")
+    end
+
+    def cache_storage
+      @cache_storage ||= LockAndCache.cache_storage or raise("must set LockAndCache.cache_storage=[Redis]")
     end
 
     def load_existing(existing)
@@ -51,7 +55,7 @@ module LockAndCache
       raise "heartbeat_expires must be >= 2 seconds" unless heartbeat_expires >= 2
       heartbeat_frequency = (heartbeat_expires / 2).ceil
       LockAndCache.logger.debug { "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-      if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
+      if cache_storage.exists(digest) and (existing = cache_storage.get(digest)).is_a?(String)
         return load_existing(existing)
       end
       LockAndCache.logger.debug { "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
@@ -60,14 +64,14 @@ module LockAndCache
       acquired = false
       begin
         Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
-          until storage.set(lock_digest, lock_secret, nx: true, ex: heartbeat_expires)
+          until lock_storage.set(lock_digest, lock_secret, nx: true, ex: heartbeat_expires)
             LockAndCache.logger.debug { "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
             sleep rand
           end
           acquired = true
         end
         LockAndCache.logger.debug { "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-        if storage.exists(digest) and (existing = storage.get(digest)).is_a?(String)
+        if cache_storage.exists(digest) and (existing = cache_storage.get(digest)).is_a?(String)
           LockAndCache.logger.debug { "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
           retval = load_existing existing
         end
@@ -83,8 +87,8 @@ module LockAndCache
                 break if done
                 LockAndCache.logger.debug { "[lock_and_cache] heartbeat2 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
                 # FIXME use lua to check the value
-                raise "unexpectedly lost lock for #{key.debug}" unless storage.get(lock_digest) == lock_secret
-                storage.set lock_digest, lock_secret, xx: true, ex: heartbeat_expires
+                raise "unexpectedly lost lock for #{key.debug}" unless lock_storage.get(lock_digest) == lock_secret
+                lock_storage.set lock_digest, lock_secret, xx: true, ex: heartbeat_expires
               end
             end
             begin
@@ -100,32 +104,32 @@ module LockAndCache
           end
         end
       ensure
-        storage.del lock_digest if acquired
+        lock_storage.del lock_digest if acquired
       end
       retval
     end
 
     def set_error(exception)
-      storage.set digest, ::Marshal.dump(ERROR_MAGIC_KEY => exception.message), ex: 1
+      cache_storage.set digest, ::Marshal.dump(ERROR_MAGIC_KEY => exception.message), ex: 1
     end
 
     NIL = Marshal.dump nil
     def set_nil
       if nil_expires
-        storage.set digest, NIL, ex: nil_expires
+        cache_storage.set digest, NIL, ex: nil_expires
       elsif expires
-        storage.set digest, NIL, ex: expires
+        cache_storage.set digest, NIL, ex: expires
       else
-        storage.set digest, NIL
+        cache_storage.set digest, NIL
       end
     end
 
     def set_non_nil(retval)
       raise "expected not null #{retval.inspect}" if retval.nil?
       if expires
-        storage.set digest, ::Marshal.dump(retval), ex: expires
+        cache_storage.set digest, ::Marshal.dump(retval), ex: expires
       else
-        storage.set digest, ::Marshal.dump(retval)
+        cache_storage.set digest, ::Marshal.dump(retval)
       end
     end
   end

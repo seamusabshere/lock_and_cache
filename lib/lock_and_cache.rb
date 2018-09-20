@@ -20,15 +20,26 @@ module LockAndCache
 
   class TimeoutWaitingForLock < StandardError; end
 
-  # @param redis_connection [Redis] A redis connection to be used for lock and cached value storage
-  def LockAndCache.storage=(redis_connection)
+  # @param redis_connection [Redis] A redis connection to be used for lock storage
+  def LockAndCache.lock_storage=(redis_connection)
     raise "only redis for now" unless redis_connection.class.to_s == 'Redis'
-    @storage = redis_connection
+    @lock_storage = redis_connection
   end
 
   # @return [Redis] The redis connection used for lock and cached value storage
-  def LockAndCache.storage
-    @storage
+  def LockAndCache.lock_storage
+    @lock_storage
+  end
+
+  # @param redis_connection [Redis] A redis connection to be used for cached value storage
+  def LockAndCache.cache_storage=(redis_connection)
+    raise "only redis for now" unless redis_connection.class.to_s == 'Redis'
+    @cache_storage = redis_connection
+  end
+
+  # @return [Redis] The redis connection used for cached value storage
+  def LockAndCache.cache_storage
+    @cache_storage
   end
 
   # @param logger [Logger] A logger.
@@ -41,13 +52,22 @@ module LockAndCache
     @logger
   end
 
-  # Flush LockAndCache's storage.
+  # Flush LockAndCache's cached value storage.
   #
   # @note If you are sharing a redis database, it will clear it...
   #
   # @note If you want to clear a single key, try `LockAndCache.clear(key)` (standalone mode) or `#lock_and_cache_clear(method_id, *key_parts)` in context mode.
-  def LockAndCache.flush
-    storage.flushdb
+  def LockAndCache.flush_cache
+    cache_storage.flushdb
+  end
+
+  # Flush LockAndCache's lock storage.
+  #
+  # @note If you are sharing a redis database, it will clear it...
+  #
+  # @note If you want to clear a single key, try `LockAndCache.clear(key)` (standalone mode) or `#lock_and_cache_clear(method_id, *key_parts)` in context mode.
+  def LockAndCache.flush_locks
+    lock_storage.flushdb
   end
 
   # Lock and cache based on a key.
