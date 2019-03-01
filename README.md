@@ -150,6 +150,26 @@ Check locks with
 LockAndCache.locked? :stock_price, company: 'MSFT', date: '2015-05-05'
 ```
 
+Caching, locking or both can be bypassed
+
+```ruby
+LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10, bypass: :cache) do
+  # ignore any cached value, get yer stock quote
+end
+```
+
+```ruby
+LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10, bypass: :lock) do
+  # return cached value if it exists, otherwise get yer stock quote *without* acquiring lock
+end
+```
+
+```ruby
+LockAndCache.lock_and_cache(:stock_price, {company: 'MSFT', date: '2015-05-05'}, expires: 10, bypass: :both) do
+  # get yer stock quote without caching or locking
+end
+```
+
 #### Context mode
 
 "Context mode" simply adds the class name, method name, and context key (the results of `#id` or `#lock_and_cache_key`) of the caller to the cache key.
@@ -234,6 +254,6 @@ You can expire nil values with a different timeout (`nil_expires`) than other va
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create a new Pull Request
 
-# Copyright 
+# Copyright
 
 Copyright 2015 Seamus Abshere
