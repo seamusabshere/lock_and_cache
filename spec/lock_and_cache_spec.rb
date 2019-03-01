@@ -343,6 +343,27 @@ describe LockAndCache do
       expect(LockAndCache.lock_and_cache('hello') { raise(Exception.new("stop")) }).to eq(:red)
     end
 
+    it 'doesn\'t break when bypass has an unknown value' do
+      expect(LockAndCache.lock_and_cache('hello', bypass: nil) { :red }).to eq(:red)
+      expect(LockAndCache.lock_and_cache('hello', bypass: :foo) { raise(Exception.new("stop")) }).to eq(:red)
+    end
+
+    it 'doesn\'t cache when bypass == :cache' do
+      count = 0
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      expect(LockAndCache.lock_and_cache('hello', bypass: :cache) { count += 1 }).to eq(2)
+      expect(count).to eq(2)
+    end
+
+    it 'doesn\'t cache when bypass == :both' do
+      count = 0
+      expect(LockAndCache.lock_and_cache('hello') { count += 1 }).to eq(1)
+      expect(count).to eq(1)
+      expect(LockAndCache.lock_and_cache('hello', bypass: :both) { count += 1 }).to eq(2)
+      expect(count).to eq(2)
+    end
+
     it 'caches errors (briefly)' do
       count = 0
       expect {
@@ -434,7 +455,7 @@ describe LockAndCache do
       expect(LockAndCache.lock_and_cache(['hello', 1, { target: 'world' }]) { count += 1 }).to eq(1)
       expect(count).to eq(1)
     end
-    
+
     it 'treats a single hash arg as a cache key (not as options)' do
       count = 0
       LockAndCache.lock_and_cache(hello: 'world', expires: 100) { count += 1 }

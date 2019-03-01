@@ -24,6 +24,11 @@ module LockAndCache
       @nil_expires = options.has_key?('nil_expires') ? options['nil_expires'].to_f.round : nil
     end
 
+    def bypass
+      return @bypass if defined?(@bypass)
+      @bypass = options.has_key?('bypass') ? options['bypass'] : nil
+    end
+
     def digest
       @digest ||= key.digest
     end
@@ -55,7 +60,7 @@ module LockAndCache
       raise "heartbeat_expires must be >= 2 seconds" unless heartbeat_expires >= 2
       heartbeat_frequency = (heartbeat_expires / 2).ceil
       LockAndCache.logger.debug { "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-      if cache_storage.exists(digest) and (existing = cache_storage.get(digest)).is_a?(String)
+      if ![:cache, :both].include?(bypass) and cache_storage.exists(digest) and (existing = cache_storage.get(digest)).is_a?(String)
         return load_existing(existing)
       end
       LockAndCache.logger.debug { "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
@@ -63,13 +68,16 @@ module LockAndCache
       lock_secret = SecureRandom.hex 16
       acquired = false
       begin
-        Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
-          until lock_storage.set(lock_digest, lock_secret, nx: true, ex: heartbeat_expires)
-            LockAndCache.logger.debug { "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-            sleep rand
+        unless [:lock, :both].include?(bypass)
+          Timeout.timeout(max_lock_wait, TimeoutWaitingForLock) do
+            until lock_storage.set(lock_digest, lock_secret, nx: true, ex: heartbeat_expires)
+              LockAndCache.logger.debug { "[lock_and_cache] C1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
+              sleep rand
+            end
+            acquired = true
           end
-          acquired = true
         end
+        return blk.call if [:cache, :both].include?(bypass)
         LockAndCache.logger.debug { "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
         if cache_storage.exists(digest) and (existing = cache_storage.get(digest)).is_a?(String)
           LockAndCache.logger.debug { "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
