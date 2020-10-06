@@ -55,7 +55,7 @@ module LockAndCache
       raise "heartbeat_expires must be >= 2 seconds" unless heartbeat_expires >= 2
       heartbeat_frequency = (heartbeat_expires / 2).ceil
       LockAndCache.logger.debug { "[lock_and_cache] A1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-      if cache_storage.exists(digest) and (existing = cache_storage.get(digest)).is_a?(String)
+      if cache_storage.exists?(digest) and (existing = cache_storage.get(digest)).is_a?(String)
         return load_existing(existing)
       end
       LockAndCache.logger.debug { "[lock_and_cache] B1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
@@ -71,7 +71,7 @@ module LockAndCache
           acquired = true
         end
         LockAndCache.logger.debug { "[lock_and_cache] D1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
-        if cache_storage.exists(digest) and (existing = cache_storage.get(digest)).is_a?(String)
+        if cache_storage.exists?(digest) and (existing = cache_storage.get(digest)).is_a?(String)
           LockAndCache.logger.debug { "[lock_and_cache] E1 #{key.debug} #{Base64.encode64(digest).strip} #{Digest::SHA1.hexdigest digest}" }
           retval = load_existing existing
         end

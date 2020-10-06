@@ -1,3 +1,9 @@
+6.0.1
+
+* Enhancements
+
+  * Use Redis#exists? to avoid deprec warning
+
 6.0.0
 
 * Breaking changes
